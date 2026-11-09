@@ -89,6 +89,25 @@ textarea{min-height:72px;resize:vertical}
 .confirm{border:1px solid var(--no);background:var(--no-soft);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:14px;z-index:9;max-width:90vw}
 .filebtn{position:relative;overflow:hidden}
+.cl{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)}
+.cl:last-of-type{border-bottom:0}
+.ck{display:flex;gap:10px;align-items:flex-start;font-weight:600;line-height:1.35}
+.ck input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--accent)}
+.cn{display:grid;grid-template-columns:76px minmax(0,1fr) auto;gap:8px;align-items:center;padding-left:30px}
+.cn input{padding:8px;text-align:right}
+.cn .u{font-size:13px;color:var(--muted);min-width:0}
+.cn b{font-variant-numeric:tabular-nums}
+.cl:not(.on) .cn{opacity:.6}
+.warn{color:var(--warn)}
+.tot{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);padding-top:10px;font-weight:600}
+.tot b{font-variant-numeric:tabular-nums;color:var(--accent);font-size:17px}
+.tot.big b{font-size:20px}
+details summary{cursor:pointer;list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:' ▾';color:var(--muted)}
+.pr{display:flex;flex-direction:column;gap:8px}
+.pr textarea{min-height:84px}
+.pr .row label{flex:1;min-width:110px}
 .filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 @media (prefers-reduced-motion:no-preference){.chip,.tab,.yn button{transition:background .12s,border-color .12s}}
 </style>
@@ -126,77 +145,78 @@ const YN='yn', CH='choice', NUM='num', TX='text', RAD='rad';
 const N0_12=['0','1','2','3','4','5','6','7','8','9','10','11','12'];
 const Q=[
  [1,TX,'Απαραίτητες εργασίες πριν την εγκατάσταση, στην ευθύνη του πελάτη'],
- [2,CH,'Είδος οικίας',['Διαμέρισμα','Μεζονέτα','Μονοκατοικία','Άλλο']],
+ [2,CH,'Είδος οικίας',['Μονοκατοικία','Διαμέρισμα','Μεζονέτα','Άλλο']],
  [3,TX,'Περιγράψτε (είδος οικίας)',null,{q:2,v:'Άλλο'}],
  [4,CH,'Όροφος',['Υπόγειο','Ισόγειο','Ημιόροφος','1ος','2ος','3ος','4ος','5ος','6ος','7ος','8ος','Ρετιρέ']],
  [5,NUM,'Τετραγωνικά (m²)'],
  [6,NUM,'Έτος κατασκευής'],
  [7,NUM,'Πάχος εξωτερικού τοίχου (cm)',['20','25','30','35','40','45','50']],
- [8,NUM,'Τοίχοι προς το εξωτερικό περιβάλλον',['1','2','3','4']],
+ [8,NUM,'Αριθμός τοίχων που συνορεύουν με το εξωτερικό περιβάλλον',['1','2','3','4']],
  [9,YN,'Δάπεδο εκτεθειμένο σε πυλωτή'],
  [10,YN,'Οροφή εκτεθειμένη στο περιβάλλον'],
  [11,NUM,'Πόσα παράθυρα διαθέτει',N0_12],
  [12,NUM,'Πόσες μπαλκονόπορτες διαθέτει',N0_12],
- [13,CH,'Είδος κουφωμάτων',['Αλουμινίου','PVC','Ξύλινα','Σιδερένια','Μικτά']],
- [14,CH,'Είδος υαλοπίνακα',['Μονός','Διπλός χωρίς θερμοδιακοπή','Διπλός με θερμοδιακοπή','Διπλός Low-E','Τριπλός']],
+ [13,CH,'Είδος κουφωμάτων',['Ξύλινα','Αλουμινίου παλαιά','Αλουμινίου σύγχρονα','Αλουμινίου με θερμοδιακοπή','PVC','Μικτά']],
+ [14,CH,'Είδος υαλοπίνακα',['Μονός','Διπλός','Τριπλός','Ενεργειακός']],
  [15,TX,'Παρατηρήσεις (κέλυφος)'],
- [16,CH,'Είδος υφιστάμενου υδραυλικού δικτύου θέρμανσης',['Αυτόνομη θέρμανση','Κεντρική θέρμανση','Χωρίς θέρμανση']],
- [17,CH,'Θέση συλλέκτη νερού διανομής',['Εξωτερικό τοίχο κουζίνας','Κουζίνα','Λουτρό','Διάδρομος','Μπαλκόνι','Άλλο'],{q:16,v:'Αυτόνομη θέρμανση'}],
- [18,CH,'Είδος υφιστάμενου δικτύου διανομής θέρμανσης',['Μονοσωλήνιο','Δισωλήνιο','Με συλλέκτες','Ενδοδαπέδιο']],
+ [16,CH,'Είδος υφιστάμενου υδραυλικού δικτύου θέρμανσης',['Αυτόνομη θέρμανση','Κεντρική θέρμανση','Χωρίς δίκτυο θέρμανσης']],
+ [17,CH,'Θέση συλλέκτη νερού διανομής',['Κλιμακοστάσιο','Μπαλκόνι','Εσωτερικά','Άλλο'],{q:16,not:'Χωρίς δίκτυο θέρμανσης'}],
+ [18,CH,'Είδος υφιστάμενου δικτύου διανομής θέρμανσης',['Μονοσωλήνιο','Δισωλήνιο','Δεν έχει']],
  [19,NUM,'Πόσα σώματα σε σειρά',['1','2','3','4','5','6','7','8','9','10','11','12'],{q:18,v:'Μονοσωλήνιο'}],
- [20,CH,'Είδος τερματικών μονάδων',['Θερμαντικά σώματα Panel','Θερμαντικά σώματα Panel και λουτρού','Θερμαντικά σώματα αλουμινίου','Θερμαντικά σώματα χυτοσίδηρα','Fan coil','Ενδοδαπέδια']],
+ [20,CH,'Είδος τερματικών μονάδων',['Θερμαντικά σώματα panel','Σώματα αλουμινίου','Τύπου ΑΚΑΝ','Χυτοσίδηρα','Fancoils','Ενδοδαπέδια θέρμανση','Ενδοδαπέδια θέρμανση με δροσισμό']],
  [21,RAD,'Διαστάσεις υφιστάμενων καλοριφέρ (ΤΥΠΟΣ/ΥΨΟΣ/ΜΗΚΟΣ)'],
  [22,YN,'Υπάρχει ηλιακός θερμοσίφωνας'],
  [23,NUM,'Λίτρα ηλιακού',['120','150','160','200','300'],{q:22,v:'Ναι'}],
- [24,CH,'Είδος υφιστάμενου ηλιακού',['Επιλεκτικός','Μη επιλεκτικός','Κενού'],{q:22,v:'Ναι'}],
- [25,CH,'Υφιστάμενος αυτοματισμός θέρμανσης',['Θερμοστάτης','Χρονοθερμοστάτης','Ασύρματος θερμοστάτης','Κανένας']],
- [26,YN,'Διαθέτει πίνακα αυτονομίας'],
- [27,NUM,'Πόσους θερμοστάτες χώρου διαθέτει',['0','1','2','3','4','5','6']],
- [28,NUM,'Πόσες ηλεκτροβάνες διαθέτει',['0','1','2','3','4','5','6']],
+ [24,CH,'Είδος υφιστάμενου ηλιακού',['Διπλής ενέργειας','Τριπλής ενέργειας για λέβητα','Τριπλής ενέργειας για αντλία θερμότητας'],{q:22,v:'Ναι'}],
+ [25,YN,'Υφιστάμενος αυτοματισμός θέρμανσης'],
+ [26,YN,'Διαθέτει πίνακα αυτονομίας',null,{q:25,v:'Ναι'}],
+ [27,NUM,'Πόσους θερμοστάτες χώρου διαθέτει',['0','1','2','3','4','5','6'],{q:25,v:'Ναι'}],
+ [28,NUM,'Πόσες ηλεκτροβάνες διαθέτει',['0','1','2','3','4','5','6'],{q:25,v:'Ναι'}],
  [29,TX,'Παρατηρήσεις (υφιστάμενη θέρμανση)'],
- [30,CH,'Τύπος παροχής',['Μονοφασική','Μονοφασική ενισχυμένη','Τριφασική']],
- [31,CH,'Ampere κεντρικής ασφάλειας ηλ. πίνακα',['25 Α','32 Α','40 Α','50 Α','63 Α']],
+ [30,CH,'Τύπος παροχής',['Μονοφασική','Τριφασική']],
+ [31,NUM,'Ampere κεντρικής ασφάλειας ηλ. πίνακα',['25','32','35','40','50','63']],
  [32,TX,'Περιγραφή νέου συστήματος θέρμανσης'],
- [33,CH,'Τρόπος λειτουργίας συστήματος',['Αυτόνομα','Hybrid με 2η πηγή θέρμανσης']],
- [34,YN,'Βασική διάταξη υδραυλικής σύνδεσης αντλίας θερμότητας'],
+ [33,CH,'Τρόπος λειτουργίας συστήματος',['Θέρμανση','Θέρμανση και ΖΝΧ','Θέρμανση-ψύξη','Θέρμανση-ψύξη και ΖΝΧ']],
+ [34,CH,'Βασική διάταξη υδραυλικής σύνδεσης αντλίας θερμότητας',['Απευθείας στον συλλέκτη διανομής νερού','Με δοχείο αδρανείας στην επιστροφή','Με δοχείο αδρανείας σε διάταξη πρωτεύον-δευτερεύον κύκλωμα','Νέο δίκτυο θέρμανσης','Νέο δίκτυο θέρμανσης-ψύξης']],
  [35,NUM,'Μήκος κεντρικής υδραυλικής σωλήνας (m)',['5','10','15','20','25','30']],
  [36,CH,'Πόσα νέα θερμαντικά σώματα θα εγκατασταθούν',['Κανένα','1','2','3','4','5','6','7','8','9','10','11','12']],
  [37,CH,'Πόσα νέα fancoils θα εγκατασταθούν',['Κανένα','1','2','3','4','5','6','7','8','9','10','11','12']],
- [38,NUM,'Ονομαστική ισχύς θέρμανσης αντλίας (kW)',['4','6','8','10','12','14','16','18','22','26','30']],
- [39,NUM,'kW ηλεκτρικής υποβοήθησης',['0','3','6','9']],
- [40,CH,'Ζεστά νερά χρήσης',['Ναι','Όχι','Με κάθετο BOILER ΖΝΧ','Με ηλιακό θερμοσίφωνα']],
- [41,CH,'Είδος θερμοδοχείου για ΖΝΧ',['Κάθετο','Οριζόντιο']],
+ [38,NUM,'Ονομαστική ισχύς θέρμανσης αντλίας (kW)',['4','5','6','7','8','9','10','12','14','16','18','22','26','30']],
+ [39,CH,'kW ηλεκτρικής υποβοήθησης',['3','6','Όχι']],
+ [40,CH,'Ζεστά νερά χρήσης',['Με κάθετο boiler ΖΝΧ','Με ηλιακό θερμοσίφωνα','Όχι']],
+ [41,CH,'Είδος θερμοδοχείου για ΖΝΧ',['200 λίτρα διπλής ενέργειας','200 λίτρα τριπλής ενέργειας','300 λίτρα διπλής ενέργειας','300 λίτρα τριπλής ενέργειας','Άλλο'],{q:40,v:'Με κάθετο boiler ΖΝΧ'}],
  [42,YN,'Σύνδεση μονάδας με ηλιακό θερμοσίφωνα'],
- [43,NUM,'Μέτρα υδραυλικής σωλήνας προς ηλιακό'],
- [44,TX,'Περιγράψτε'],
- [45,CH,'Θέση εγκατάστασης εξωτερικής μονάδας',['Πίσω βεράντα διαμερίσματος','Βεράντα','Μπαλκόνι','Δώμα / ταράτσα','Αυλή','Πυλωτή','Επιτοίχια βάση σε όψη']],
+ [43,NUM,'Μέτρα υδραυλικής σωλήνας προς ηλιακό',null,{q:42,v:'Ναι'}],
+ [44,TX,'Περιγράψτε (σύνδεση με ηλιακό)',null,{q:42,v:'Ναι'}],
+ [45,TX,'Θέση εγκατάστασης εξωτερικής μονάδας (περιγραφή σημείου)',['Μπαλκόνι','Βεράντα','Πίσω βεράντα','Δώμα / ταράτσα','Αυλή','Πυλωτή','Επιτοίχια βάση σε όψη']],
  [46,YN,'Χρειάζεται γερανός για τη μεταφορά'],
  [47,CH,'Τύπος γερανού',['Γερανός οχήματος','Καλαθοφόρο','Ανυψωτικό'],{q:46,v:'Ναι'}],
- [48,YN,'Προτεινόμενες τερματικές μονάδες: θερμαντικά σώματα (διαστάσεις και τμχ)'],
- [49,YN,'Προτεινόμενες τερματικές μονάδες: fancoil (θερμική ισχύς και τμχ)'],
+ [48,TX,'Προτεινόμενες τερματικές μονάδες: θερμαντικά σώματα (διαστάσεις και τμχ)'],
+ [49,TX,'Προτεινόμενες τερματικές μονάδες: fancoil (θερμική ισχύς και τμχ)'],
  [50,NUM,'Μέτρα παροχικού καλωδίου',['5','10','15','20','25','30']],
  [51,NUM,'Μέτρα θωρακισμένου καλωδίου εντολών',['5','10','15','20','25','30']],
  [52,TX,'Παρατηρήσεις ηλεκτρολογικής διάταξης'],
  [53,YN,'Υπηρεσία: Βασική εγκατάσταση αντλίας θερμότητας'],
  [54,YN,'Υπηρεσία: Ανάπτυξη ηλεκτρικής παροχής μονάδας'],
  [55,YN,'Υπηρεσία: Εκκίνηση αντλίας θερμότητας'],
- [57,YN,'Υπηρεσία: Δοχείο αδρανείας στην επιστροφή'],
- [58,YN,'Υπηρεσία: Δοχείο αδρανείας σε πρωτεύον/δευτερεύον'],
- [59,YN,'Υπηρεσία: Τερματικές μονάδες καλοριφέρ'],
- [60,YN,'Υπηρεσία: Τερματικές μονάδες fancoil'],
+ [57,YN,'Υπηρεσία: Εγκατάσταση δοχείου αδρανείας στην επιστροφή'],
+ [58,YN,'Υπηρεσία: Εγκατάσταση δοχείου αδρανείας σε πρωτεύον/δευτερεύον'],
+ [59,YN,'Υπηρεσία: Εγκατάσταση τερματικών μονάδων καλοριφέρ'],
+ [60,YN,'Υπηρεσία: Εγκατάσταση τερματικών μονάδων fancoil'],
  [61,YN,'Υπηρεσία: Ηλεκτρολογικές εργασίες / επιπλέον μέτρα καλωδίου'],
  [62,YN,'Υπηρεσία: Υδραυλικές εργασίες / επιπλέον μέτρα σωλήνα'],
- [63,YN,'Υπηρεσία: Χημικός καθαρισμός υφιστάμενου δικτύου'],
+ [63,YN,'Υπηρεσία: Χημικός καθαρισμός υφιστάμενου δικτύου θέρμανσης'],
  [64,YN,'Υπηρεσία: Αυτοματισμοί θέρμανσης σε υφιστάμενη καλωδίωση'],
  [65,YN,'Υπηρεσία: Ανάπτυξη εσωτερικού δικτύου θέρμανσης-ψύξης'],
  [66,YN,'Υπηρεσία: Ανάπτυξη εσωτερικού δικτύου θέρμανσης'],
  [67,YN,'Υπηρεσία: Εγκατάσταση boiler ΖΝΧ'],
- [68,YN,'Υπηρεσία: Σύνδεση με δεύτερη πηγή θέρμανσης'],
+ [68,YN,'Υπηρεσία: Σύνδεση αντλίας θερμότητας με δεύτερη πηγή θέρμανσης'],
  [69,YN,'Υπηρεσία: Extra εργασίες έργου'],
  [70,TX,'Παρατηρήσεις extra εργασιών',null,{q:69,v:'Ναι'}],
 ].map(([seq,type,text,opts,when])=>({seq,type,text,opts:opts||null,when:when||null}));
 const QBY=Object.fromEntries(Q.map(q=>[q.seq,q]));
-const SECTIONS=[['Κτίριο',1,15],['Θέρμανση',16,29],['Παροχή',30,31],['Νέο σύστημα',32,52],['Υπηρεσίες',53,70]];
+const SECTIONS=[['Κτίριο',1,15],['Θέρμανση',16,29],['Παροχή',30,31],['Νέο σύστημα',32,52],['Υπηρεσίες',53,70],['Κοστολόγηση',0,0]];
+const COST_SEC=5;
 const RAD_SEQ=21, RAD_N=12, RAD_TYPES=['11','21','22','33','Λουτρού','Αλουμινίου'];
 /* Indicative outputs at ΔT50 (75/65/20, EN 442), typical catalogue values; converted with W=W50·(ΔT/50)^n */
 const PANEL={"11": {"300": 371, "400": 468, "450": 515, "500": 561, "600": 649, "900": 899}, "21": {"300": 517, "400": 662, "450": 731, "500": 799, "600": 931, "900": 1301}, "22": {"300": 645, "400": 842, "450": 932, "500": 1020, "600": 1186, "900": 1654}, "33": {"300": 926, "400": 1191, "450": 1317, "500": 1441, "600": 1680, "900": 2329}},PANEL_N=1.3;const TOWEL={"700": {"400": 280, "500": 330, "600": 390}, "800": {"400": 320, "500": 380, "600": 445}, "1200": {"400": 470, "500": 560, "600": 650}, "1500": {"400": 580, "500": 690, "600": 800}, "1800": {"400": 690, "500": 820, "600": 950}},TOWEL_N=1.2;const ALU={"400": 90, "500": 110, "600": 130, "700": 150, "800": 170},ALU_N=1.3;
@@ -212,12 +232,75 @@ function radW(insp,i){const [t,h,l]=String((insp.rads||[])[i]||'').split('/');co
 const qtyOf=(insp,i)=>{const q=parseInt((insp.radQty||[])[i]);return q>0?q:1};
 function radTotal(insp){let s=0;(insp.rads||[]).forEach((r,i)=>{if(r){const w=radW(insp,i);if(w)s+=w}});return s}
 
+/* ------------------------------------------------------------------ pricing (Novair price list; editable) */
+const PRICE_DEFAULT=[
+ {id:'base',t:'Βασική εγκατάσταση αντλίας θερμότητας (έως 10 m σωλήνα, ανάπτυξη παροχής έως 5 m, εκκίνηση)',p:1200,u:'τεμ.'},
+ {id:'baseBig',t:'Βασική εγκατάσταση αντλίας θερμότητας Novair 18-30 kW',p:1350,u:'τεμ.'},
+ {id:'auto',t:'Αυτοματισμοί θέρμανσης αντλίας θερμότητας σε υφιστάμενη καλωδίωση',p:120,u:'τεμ.'},
+ {id:'floor',t:'Εγκατάσταση ενδοδαπέδιας θέρμανσης',p:15,u:'m²'},
+ {id:'netHC',t:'Εγκατάσταση νέου εσωτερικού δικτύου θέρμανσης-ψύξης',p:300,u:'τεμ.'},
+ {id:'netH',t:'Εγκατάσταση νέου εσωτερικού δικτύου θέρμανσης',p:280,u:'τεμ.'},
+ {id:'boiler',t:'Εγκατάσταση δοχείου ζεστών νερών χρήσης (boiler)',p:380,u:'τεμ.'},
+ {id:'hybrid',t:'Hybrid σύνδεση αντλίας θερμότητας με 2η πηγή θέρμανσης',p:380,u:'τεμ.'},
+ {id:'pump2',t:'Εγκατάσταση κυκλοφορητή θέρμανσης/ψύξης 2ου κυκλώματος',p:85,u:'τεμ.'},
+ {id:'bufPS',t:'Εγκατάσταση δοχείου αδρανείας σε πρωτεύον-δευτερεύον',p:330,u:'τεμ.'},
+ {id:'bufRet',t:'Εγκατάσταση δοχείου αδρανείας στην επιστροφή',p:130,u:'τεμ.'},
+ {id:'fc',t:'Εγκατάσταση τερματικών μονάδων fancoil δαπέδου ή οροφής',p:70,u:'m'},
+ {id:'rad',t:'Εγκατάσταση τερματικών μονάδων καλοριφέρ',p:90,u:'m'},
+ {id:'elec',t:'Ηλεκτρολογικές εργασίες / επιπλέον μέτρα παροχικού καλωδίου',p:10,u:'m'},
+ {id:'cu',t:'Επιπλέον μέτρα χάλκινης υδραυλικής σωλήνας θέρμανσης',p:30,u:'m'},
+ {id:'pe',t:'Επιπλέον μέτρα πλαστικής υδραυλικής σωλήνας θέρμανσης',p:20,u:'m'},
+ {id:'chem',t:'Χημικός καθαρισμός δικτύου θέρμανσης',p:135,u:'τεμ.'},
+ {id:'home',t:'Οικιακός αυτοματισμός connected home για αντλία θερμότητας Novair',p:420,u:'τεμ.'},
+ {id:'extra',t:'Έξτρα εργασίες έργου',p:35,u:'ώρα'},
+ {id:'survey',t:'Αυτοψία, διαστασιολόγηση αντλίας θερμότητας',p:120,u:'τεμ.'},
+ {id:'st120',t:'Μελέτη αντλίας θερμότητας (< 120 m²)',p:180,u:'τεμ.'},
+ {id:'st250',t:'Μελέτη αντλίας θερμότητας (< 250 m²)',p:250,u:'τεμ.'},
+ {id:'stBig',t:'Μελέτη θέρμανσης (> 250 m²)',p:430,u:'τεμ.'},
+ {id:'maint',t:'Περιοδική συντήρηση αντλίας θερμότητας',p:90,u:'τεμ.'},
+ {id:'maint3',t:'3ετής συντήρηση αντλίας θερμότητας',p:240,u:'τεμ.'},
+];
+let PRICES=JSON.parse(JSON.stringify(PRICE_DEFAULT)), VAT=24;
+const num=v=>{const x=parseFloat(String(v??'').replace(/\s/g,'').replace(/\.(?=\d{3}(\D|$))/g,'').replace(',','.'));return isFinite(x)?x:0};
+const eur=v=>(Math.round(v*100)/100).toLocaleString('el-GR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+const ansN=(insp,seq)=>num(insp.answers[seq]);
+const yes=(insp,seq)=>insp.answers[seq]==='Ναι';
+/* which line items the answers imply, and with what quantity (null = to be filled in) */
+function autoCost(insp){
+  const a={},kw=ansN(insp,38),m2=ansN(insp,5),cnt=s=>{const v=insp.answers[s];return v&&v!=='Κανένα'?num(v):0};
+  if(yes(insp,53))a[kw>=18?'baseBig':'base']=1;
+  if(yes(insp,57))a.bufRet=1;
+  if(yes(insp,58))a.bufPS=1;
+  if(yes(insp,59))a.rad=null;
+  if(yes(insp,60))a.fc=null;
+  if(yes(insp,61))a.elec=Math.max(0,ansN(insp,50)-5)||null;
+  if(yes(insp,62))a.cu=Math.max(0,ansN(insp,35)-10)||null;
+  if(yes(insp,63))a.chem=1;
+  if(yes(insp,64))a.auto=1;
+  if(yes(insp,65))a.netHC=(cnt(36)+cnt(37))||null;
+  if(yes(insp,66))a.netH=cnt(36)||null;
+  if(yes(insp,67))a.boiler=1;
+  if(yes(insp,68))a.hybrid=1;
+  if(yes(insp,69))a.extra=null;
+  if((insp.answers[20]||'').startsWith('Ενδοδαπέδια')&&(yes(insp,65)||yes(insp,66)))a.floor=m2||null;
+  return a}
+const priceList=insp=>insp&&insp.prices&&insp.prices.length?insp.prices:PRICES;
+function costLines(insp){
+  const auto=autoCost(insp),o=insp.cost||{};
+  return priceList(insp).map(it=>{const ov=o[it.id]||{};const isAuto=it.id in auto;
+    const on=ov.on!==undefined?ov.on:isAuto;
+    const qtxt=ov.qty!==undefined?ov.qty:(isAuto&&auto[it.id]!=null?String(auto[it.id]):(on&&!isAuto?'1':''));
+    const q=num(qtxt);return {...it,on,isAuto,qtxt,q,total:on?q*num(it.p):0}})}
+function costTotal(insp){const net=costLines(insp).reduce((s,l)=>s+l.total,0);const v=insp.vat?net*VAT/100:0;return {net,vat:v,gross:net+v}}
+async function loadPrices(){try{const d=await getDoc('prices');if(d&&Array.isArray(d.items)&&d.items.length)PRICES=d.items;if(d&&d.vat!=null)VAT=num(d.vat)}catch(e){}}
+async function savePrices(){try{await putDoc('prices',{kind:'prices',items:PRICES,vat:VAT,updatedAt:new Date().toISOString()});setSave('Αποθηκεύτηκε')}catch(e){toast('Ο τιμοκατάλογος δεν αποθηκεύτηκε.')}}
+
 /* ------------------------------------------------------------------ state */
 let store=null, uid=null, list=[], cur=null, curFile=null, view='list', section=0, saving=Promise.resolve(), dirty=false, timer=null, confirmDel=false, banner='';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2600)}
-const visible=q=>!q.when||(cur.answers[q.when.q]||'')===q.when.v;
+const visible=q=>{const w=q.when;if(!w)return true;const a=cur.answers[w.q]||'';return w.not!==undefined?a!==w.not:a===w.v};
 const answered=q=>q.type===RAD?(cur.rads||[]).some(Boolean):String(cur.answers[q.seq]??'').trim()!=='';
 function progress(insp){const c=cur;cur=insp;const vs=Q.filter(visible);const n=vs.filter(answered).length;cur=c;return [n,vs.length]}
 const today=()=>new Date().toISOString().slice(0,10);
@@ -231,7 +314,7 @@ async function boot(){
   if(navigator.storage&&navigator.storage.persist){try{await navigator.storage.persist()}catch(e){}}
   useLocal();
 }
-function useLocal(){store={kind:'local'};list=Object.values(lsAll()).filter(x=>x.kind==='insp').sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));render()}
+function useLocal(){store={kind:'local'};loadPrices();list=Object.values(lsAll()).filter(x=>x.kind==='insp').sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));render()}
 async function putDoc(id,data){
   if(store.kind==='db')return store.col.doc(id).set(data);
   const all=lsAll();all[id]={id,...data};if(!lsPut(all))throw new Error('Δεν υπάρχει χώρος αποθήκευσης στη συσκευή');
@@ -302,28 +385,59 @@ async function buildDynamics(insp,fileDoc){
     let ct=await zip.file('[Content_Types].xml').async('string');ct=ct.replace(/<Override PartName="\/xl\/calcChain.xml"[^>]*\/>/,'');zip.file('[Content_Types].xml',ct)}
   return zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
 }
-async function buildSimple(insp){
+
+const XSTYLE='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0.00\ &quot;€&quot;"/></numFmts><fonts count="2"><font><sz val="10"/><name val="Aptos"/></font><font><b/><sz val="10"/><name val="Aptos"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDCEFEE"/></patternFill></fill></fills><borders count="2"><border/><border><left style="thin"><color rgb="FFC9D3D9"/></left><right style="thin"><color rgb="FFC9D3D9"/></right><top style="thin"><color rgb="FFC9D3D9"/></top><bottom style="thin"><color rgb="FFC9D3D9"/></bottom></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="7"><xf numFmtId="49" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="49" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment wrapText="1" vertical="center" horizontal="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/><xf numFmtId="164" fontId="1" fillId="2" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+/* cell: string | {v:number,s} | {f:formula,s} | {t:text,s} */
+const colL=i=>String.fromCharCode(65+i);
+function sheetXml(rows,widths){
+  const x=rows.map((r,i)=>'<row r="'+(i+1)+'">'+r.map((c,j)=>{if(c==null||c==='')return '';const ref=colL(j)+(i+1);
+    if(typeof c==='string')return '<c r="'+ref+'" s="0" t="inlineStr"><is><t xml:space="preserve">'+xesc(c)+'</t></is></c>';
+    if(c.f)return '<c r="'+ref+'" s="'+(c.s??5)+'"><f>'+xesc(c.f)+'</f></c>';
+    if(c.v!==undefined)return '<c r="'+ref+'" s="'+(c.s??2)+'"><v>'+c.v+'</v></c>';
+    return '<c r="'+ref+'" s="'+(c.s??0)+'" t="inlineStr"><is><t xml:space="preserve">'+xesc(c.t)+'</t></is></c>'}).join('')+'</row>').join('');
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols>'+widths.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join('')+'</cols><sheetData>'+x+'</sheetData></worksheet>'}
+function workbook(sheets){/* sheets: [{name,xml}] */
   const zip=new JSZip();
-  zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>');
+  zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+sheets.map((s,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('')+'<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>');
   zip.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
-  zip.file('xl/workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Αυτοψία" sheetId="1" r:id="rId1"/></sheets></workbook>');
-  zip.file('xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
-  zip.file('xl/styles.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="10"/><name val="Aptos"/></font><font><b/><sz val="10"/><name val="Aptos"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="49" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf><xf numFmtId="49" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>');
-  const rows=[['Πελάτης',insp.client||''],['Διεύθυνση',insp.address||''],['Ημερομηνία αυτοψίας',fmtDate(insp.date)],['',''],['Α/Α','Ερώτηση','Απάντηση']];
-  Q.forEach(q=>rows.push([String(q.seq),q.text,answerFor(insp,q.seq)]));
+  zip.file('xl/workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+sheets.map((s,i)=>'<sheet name="'+xesc(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>').join('')+'</sheets><calcPr fullCalcOnLoad="1"/></workbook>');
+  zip.file('xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map((s,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+  zip.file('xl/styles.xml',XSTYLE);
+  sheets.forEach((s,i)=>zip.file('xl/worksheets/sheet'+(i+1)+'.xml',s.xml));
+  return zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+function costSheet(insp){
+  const L=costLines(insp).filter(l=>l.on);
+  const rows=[[{t:'Κοστολόγηση εργασιών αντλίας θερμότητας',s:1}],['Πελάτης',insp.client||''],['Διεύθυνση',insp.address||''],['Ημερομηνία αυτοψίας',fmtDate(insp.date)],[],
+    [{t:'Α/Α',s:3},{t:'Περιγραφή εργασίας',s:3},{t:'Μον.',s:3},{t:'Ποσότητα',s:3},{t:'Τιμή μονάδας',s:3},{t:'Σύνολο',s:3}]];
+  const r0=rows.length+1;
+  L.forEach((l,k)=>{const r=r0+k;rows.push([{v:k+1,s:4},{t:l.t,s:4},{t:l.u,s:4},{v:l.q,s:4},{v:num(l.p),s:5},{f:'D'+r+'*E'+r,s:5}])});
+  const r1=r0+L.length-1,rt=r1+1;
+  rows.push([null,{t:'Σύνολο (καθαρό)',s:3},null,null,null,{f:L.length?'SUM(F'+r0+':F'+r1+')':'0',s:6}]);
+  if(insp.vat){rows.push([null,{t:'ΦΠΑ '+VAT+'%',s:4},null,null,null,{f:'F'+rt+'*'+VAT+'/100',s:5}]);rows.push([null,{t:'Σύνολο με ΦΠΑ',s:3},null,null,null,{f:'F'+rt+'+F'+(rt+1),s:6}])}
+  rows.push([]);rows.push([{t:'Τιμές από τον τιμοκατάλογο της εφαρμογής (Novair). Συντάκτης: Νικόλαος Ξηροφώτος, Μηχανολόγος Μηχανικός.',s:0}]);
+  return {name:'Κοστολόγηση',xml:sheetXml(rows,[6,64,8,10,14,14])}}
+async function exportCost(){
+  if(!cur)return;await saveNow();const btn=$('#costBtn');if(btn){btn.disabled=true;btn.textContent='Ετοιμάζεται…'}
+  try{const safe=(cur.client||'Αυτοψία').replace(/[\\/:*?"<>|]+/g,' ').trim().slice(0,60);
+    await deliver(await workbook([costSheet(cur)]),'Κοστολόγηση_'+safe+'_'+(cur.date||today())+'.xlsx')}
+  catch(e){if(e&&(e.code==='declined'||e.name==='AbortError'))toast('Ακυρώθηκε.');else toast('Η λήψη απέτυχε: '+(e.message||e.code||'σφάλμα'))}
+  finally{if(btn){btn.disabled=false;btn.textContent='Excel κοστολόγησης'}}}
+async function buildSimple(insp){
+  const rows=[['Πελάτης',insp.client||''],['Διεύθυνση',insp.address||''],['Ημερομηνία αυτοψίας',fmtDate(insp.date)],['Συντάκτης','Νικόλαος Ξηροφώτος, Μηχανολόγος Μηχανικός'],[],[{t:'Α/Α',s:1},{t:'Ερώτηση',s:1},{t:'Απάντηση',s:1}]];
+  Q.forEach(q=>{const c=cur;cur=insp;const vis=visible(q);cur=c;if(vis)rows.push([String(q.seq),q.text,answerFor(insp,q.seq)])});
   (insp.rads||[]).forEach((v,i)=>{if(v){const w=radW(insp,i);rows.push(['21.'+(i+1),'Σώμα '+(i+1)+' · '+qtyOf(insp,i)+' τεμ.',v+(w!=null?' · '+w+' W':'')])}});
-  const col=i=>'ABC'[i];
-  const xml=rows.map((r,i)=>'<row r="'+(i+1)+'">'+r.map((v,j)=>'<c r="'+col(j)+(i+1)+'" s="'+(i===4||j===0&&i<3?1:0)+'" t="inlineStr"><is><t xml:space="preserve">'+xesc(v)+'</t></is></c>').join('')+'</row>').join('');
-  zip.file('xl/worksheets/sheet1.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="1" width="20" customWidth="1"/><col min="2" max="2" width="70" customWidth="1"/><col min="3" max="3" width="40" customWidth="1"/></cols><sheetData>'+xml+'</sheetData></worksheet>');
-  return zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-}
+  const sh=[{name:'Αυτοψία',xml:sheetXml(rows,[20,70,40])}];
+  if(costLines(insp).some(l=>l.on))sh.push(costSheet(insp));
+  return workbook(sh)}
+async function deliver(blob,name){
+  await giveFile(blob,name)}
 async function exportXlsx(){
   if(!cur)return;await saveNow();const btn=$('#exportBtn');btn.disabled=true;btn.textContent='Ετοιμάζεται…';
   try{
     let blob,name;const safe=(cur.client||'Αυτοψία').replace(/[\\/:*?"<>|]+/g,' ').trim().slice(0,60);
     if(cur.fileId){const fd=curFile||await getDoc(cur.fileId);if(!fd)throw new Error('Δεν βρέθηκε το αρχικό αρχείο Dynamics.');curFile=fd;blob=await buildDynamics(cur,fd);name=(fd.name||'Inspection.xlsx').replace(/\.xlsx$/i,'')+'_συμπληρωμένο.xlsx'}
     else{blob=await buildSimple(cur);name='Αυτοψία_'+safe+'_'+(cur.date||today())+'.xlsx'}
-    await giveFile(blob,name);
+    await deliver(blob,name);
   }catch(e){if(e&&e.name==='AbortError')toast('Η αποστολή ακυρώθηκε.');else toast('Η λήψη απέτυχε: '+(e.message||'σφάλμα'))}
   finally{btn.disabled=false;btn.textContent='Αποστολή Excel'}
 }
@@ -341,7 +455,7 @@ async function restoreAll(file){try{const j=JSON.parse(await file.text());if(!j|
   if(!lsPut(all))throw new Error('Δεν υπάρχει χώρος στη συσκευή.');useLocal();toast('Επαναφέρθηκαν '+n+' αυτοψίες.')}catch(e){toast(e&&e.message?e.message:'Το αρχείο δεν είναι αντίγραφο αυτής της εφαρμογής.')}}
 
 /* ------------------------------------------------------------------ actions */
-function blank(){return {kind:'insp',client:'',address:'',date:today(),answers:{},rads:Array(RAD_N).fill(''),radQty:Array(RAD_N).fill(''),cond:{tin:75,tout:60,troom:20},fileId:null,fileName:'',updatedAt:''}}
+function blank(){return {kind:'insp',client:'',address:'',date:today(),answers:{},rads:Array(RAD_N).fill(''),radQty:Array(RAD_N).fill(''),cond:{tin:75,tout:60,troom:20},fileId:null,fileName:'',updatedAt:'',prices:JSON.parse(JSON.stringify(PRICES)),cost:{},vat:false}}
 async function createNew(){cur={id:newId(),...blank()};curFile=null;dirty=true;await saveNow();openEdit()}
 async function importFile(file){
   try{
@@ -353,7 +467,7 @@ async function importFile(file){
   }catch(e){toast(e.message||'Το αρχείο δεν διαβάστηκε.')}
 }
 function openEdit(){view='edit';section=0;confirmDel=false;render();window.scrollTo(0,0)}
-async function openInsp(id){const x=list.find(i=>i.id===id);if(!x)return;cur=JSON.parse(JSON.stringify(x));cur.rads=Array.from({length:RAD_N},(_,i)=>(cur.rads||[])[i]||'');cur.radQty=Array.from({length:RAD_N},(_,i)=>(cur.radQty||[])[i]||'');if(!cur.cond)cur.cond={tin:75,tout:60,troom:20};curFile=null;openEdit()}
+async function openInsp(id){const x=list.find(i=>i.id===id);if(!x)return;cur=JSON.parse(JSON.stringify(x));cur.rads=Array.from({length:RAD_N},(_,i)=>(cur.rads||[])[i]||'');cur.radQty=Array.from({length:RAD_N},(_,i)=>(cur.radQty||[])[i]||'');if(!cur.cond)cur.cond={tin:75,tout:60,troom:20};if(!cur.prices||!cur.prices.length)cur.prices=JSON.parse(JSON.stringify(PRICES));if(!cur.cost)cur.cost={};curFile=null;openEdit()}
 async function backToList(){await saveNow();view='list';cur=null;setSave('');render();window.scrollTo(0,0)}
 async function removeCur(){const c=cur;await saveNow();try{await delDoc(c.id);if(c.fileId)await delDoc(c.fileId)}catch(e){toast('Η διαγραφή απέτυχε.');return}
   if(store.kind==='local')list=list.filter(i=>i.id!==c.id);view='list';cur=null;setSave('');render();toast('Η αυτοψία διαγράφηκε.')}
@@ -361,14 +475,14 @@ function setAns(seq,v){if(v===''||v==null)delete cur.answers[seq];else cur.answe
 
 /* ------------------------------------------------------------------ rendering */
 function render(){
-  $('#backBtn').hidden=view!=='edit';$('#bottomBar').hidden=view!=='edit';
-  $('#topTitle').textContent=view==='edit'?(cur.client||'Νέα αυτοψία'):'Αυτοψίες αντλίας θερμότητας';
-  $('#app').innerHTML=view==='edit'?editHtml():listHtml();
+  $('#backBtn').hidden=view==='list';$('#bottomBar').hidden=view!=='edit';
+  $('#topTitle').textContent=view==='edit'?(cur.client||'Νέα αυτοψία'):view==='prices'?'Τιμοκατάλογος':'Αυτοψίες αντλίας θερμότητας';
+  $('#app').innerHTML=view==='edit'?editHtml():view==='prices'?pricesHtml():listHtml();
   if(view==='edit')updateBottom();
 }
 function listHtml(){
   const b=banner?'<div class="banner">'+esc(banner)+'</div>':'';
-  const actions='<div class="row"><button class="btn primary" id="newBtn">+ Νέα αυτοψία</button><label class="btn filebtn">Άνοιγμα αρχείου Dynamics<input type="file" id="fileIn" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label></div>'
+  const actions='<div class="row"><button class="btn primary" id="newBtn">+ Νέα αυτοψία</button><label class="btn filebtn">Άνοιγμα αρχείου Dynamics<input type="file" id="fileIn" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label><button class="btn" id="pricesBtn">Τιμοκατάλογος</button></div>'
    +'<p class="hint">Με το αρχείο Dynamics της αυτοψίας, η «Αποστολή Excel» δίνει το ίδιο αρχείο συμπληρωμένο, έτοιμο για εισαγωγή. Χωρίς αρχείο, δίνει απλό Excel με ερωτήσεις και απαντήσεις.</p>';
   const backup='<div class="card stack"><b>Αντίγραφο ασφαλείας</b><p class="hint">Οι αυτοψίες αποθηκεύονται μόνο σε αυτό το κινητό. Κρατάτε τακτικά αντίγραφο στα Αρχεία ή στο OneDrive· αν διαγραφεί η εφαρμογή ή αλλάξετε κινητό, επαναφέρονται από εκεί.</p><div class="row"><button class="btn" id="backupBtn">Αντίγραφο όλων</button><label class="btn filebtn">Επαναφορά<input type="file" id="restoreIn" accept=".json,application/json"></label></div></div>';
   if(!store)return '<div class="stack">'+actions+'<p class="hint">Φόρτωση…</p></div>';
@@ -376,15 +490,15 @@ function listHtml(){
   return '<div class="stack">'+b+actions+list.map(i=>{const [n,t]=progress(i);return '<button class="insp" data-open="'+esc(i.id)+'"><div class="row" style="justify-content:space-between"><b>'+esc(i.client||'Χωρίς όνομα')+'</b>'+(i.fileId?'<span class="tag">DYNAMICS</span>':'')+'</div>'
     +'<div class="meta"><span>'+esc(i.address||'—')+'</span><span>'+esc(fmtDate(i.date))+'</span><span>'+n+' / '+t+' απαντήσεις</span></div><div class="bar"><i style="width:'+Math.round(100*n/Math.max(t,1))+'%"></i></div></button>'}).join('')+backup+'</div>';
 }
-function secCount(k){const [,a,b]=SECTIONS[k];const qs=Q.filter(q=>q.seq>=a&&q.seq<=b&&visible(q));return [qs.filter(answered).length,qs.length]}
+function secCount(k){if(k===COST_SEC)return [0,0];const [,a,b]=SECTIONS[k];const qs=Q.filter(q=>q.seq>=a&&q.seq<=b&&visible(q));return [qs.filter(answered).length,qs.length]}
 function editHtml(){
   const head='<div class="card stack"><label class="f" for="cl">Πελάτης<input id="cl" data-meta="client" value="'+esc(cur.client)+'" placeholder="Ονοματεπώνυμο πελάτη" autocomplete="off"></label>'
    +'<label class="f" for="ad">Διεύθυνση<input id="ad" data-meta="address" value="'+esc(cur.address)+'" placeholder="Οδός, αριθμός, περιοχή" autocomplete="off"></label>'
    +'<label class="f" for="dt">Ημερομηνία αυτοψίας<input id="dt" type="date" data-meta="date" value="'+esc(cur.date)+'"></label>'
    +(cur.fileName?'<p class="hint">Αρχείο Dynamics: '+esc(cur.fileName)+'</p>':'')+'</div>';
-  const tabs='<div class="tabs" role="tablist">'+SECTIONS.map((s,k)=>{const [n,t]=secCount(k);return '<button class="tab" role="tab" data-sec="'+k+'" aria-selected="'+(k===section)+'">'+s[0]+'<small>'+n+'/'+t+'</small></button>'}).join('')+'</div>';
+  const tabs='<div class="tabs" role="tablist">'+SECTIONS.map((s,k)=>{const [n,t]=secCount(k);return '<button class="tab" role="tab" data-sec="'+k+'" aria-selected="'+(k===section)+'">'+s[0]+'<small id="tabc'+k+'">'+(k===COST_SEC?eur(costTotal(cur).gross):n+'/'+t)+'</small></button>'}).join('')+'</div>';
   const [,a,b]=SECTIONS[section];
-  const qs=Q.filter(q=>q.seq>=a&&q.seq<=b&&visible(q)).map(qHtml).join('');
+  const qs=section===COST_SEC?costHtml():Q.filter(q=>q.seq>=a&&q.seq<=b&&visible(q)).map(qHtml).join('');
   const next=section<SECTIONS.length-1?'<button class="btn" data-sec="'+(section+1)+'">Επόμενο: '+SECTIONS[section+1][0]+' ›</button>':'';
   const del=confirmDel?'<div class="confirm"><b>Διαγραφή αυτής της αυτοψίας;</b><span class="hint">Δεν αναιρείται.</span><div class="row"><button class="btn danger" id="delYes">Διαγραφή</button><button class="btn" id="delNo">Άκυρο</button></div></div>':'<button class="btn danger" id="delAsk">Διαγραφή αυτοψίας</button>';
   return '<div class="stack">'+head+tabs+qs+'<div class="row" style="justify-content:space-between">'+next+'</div>'+(section===SECTIONS.length-1?del:'')+'</div>';
@@ -393,7 +507,7 @@ function qHtml(q){
   const v=String(cur.answers[q.seq]??'');const done=answered(q);
   let body='';
   if(q.type===YN)body='<div class="yn"><button class="y" data-yn="'+q.seq+'" data-v="Ναι" aria-pressed="'+(v==='Ναι')+'">Ναι</button><button class="n" data-yn="'+q.seq+'" data-v="Όχι" aria-pressed="'+(v==='Όχι')+'">Όχι</button></div>';
-  else if(q.type===TX)body='<textarea id="q'+q.seq+'" data-ans="'+q.seq+'" placeholder="Γράψτε…">'+esc(v)+'</textarea>';
+  else if(q.type===TX)body=(q.opts?'<div class="chips">'+q.opts.map(o=>'<button class="chip" data-chip="'+q.seq+'" data-v="'+esc(o)+'" aria-pressed="'+(v===o)+'">'+esc(o)+'</button>').join('')+'</div>':'')+'<textarea id="q'+q.seq+'" data-ans="'+q.seq+'" placeholder="'+(q.opts?'Επιλέξτε ή περιγράψτε το σημείο…':'Γράψτε…')+'">'+esc(v)+'</textarea>';
   else if(q.type===RAD)body=radHtml();
   else{const opts=q.opts||[];const custom=v&&!opts.includes(v);
     body=(opts.length?'<div class="chips">'+opts.map(o=>'<button class="chip" data-chip="'+q.seq+'" data-v="'+esc(o)+'" aria-pressed="'+(v===o)+'">'+esc(o)+'</button>').join('')+'</div>':'')
@@ -415,9 +529,33 @@ function radHtml(){
    +'<div class="radtot"><span>Σύνολο απόδοσης '+c.tin+'/'+c.tout+' °C</span><b id="radTot">'+radTotal(cur).toLocaleString('el-GR')+' W</b></div>'
    +'<p class="hint">Λουτρού: ύψος και πλάτος. Αλουμινίου: ύψος και αριθμός φετών. Αποδόσεις: ενδεικτικές τιμές καταλόγου (EN 442), μετατροπή στις παραπάνω θερμοκρασίες. «—» σημαίνει ότι το μέγεθος δεν είναι στον πίνακα.</p>';
 }
-function updateBottom(){let n=0,t=0;Q.filter(visible).forEach(q=>{t++;if(answered(q))n++});$('#bottomInfo').textContent=n+' από '+t+' απαντήσεις'+(cur.fileId?' · αρχείο Dynamics':'')}
+
+function costHtml(){
+  const L=costLines(cur),T=costTotal(cur),dyn=cur.prices&&JSON.stringify(cur.prices)!==JSON.stringify(PRICES);
+  const row=l=>'<div class="cl'+(l.on?' on':'')+'"><label class="ck"><input type="checkbox" data-con="'+l.id+'"'+(l.on?' checked':'')+'><span>'+esc(l.t)+(l.isAuto?' <span class="tag">ΑΠΟ ΤΙΣ ΑΠΑΝΤΗΣΕΙΣ</span>':'')+'</span></label>'
+    +'<div class="cn"><input data-cq="'+l.id+'" value="'+esc(l.qtxt)+'" inputmode="decimal" placeholder="'+(l.on?'ποσ.':'')+'" aria-label="Ποσότητα"><span class="u">'+esc(l.u)+' × '+eur(num(l.p))+'</span><b id="clt-'+l.id+'">'+(l.on?eur(l.total):'')+'</b></div>'
+    +(l.on&&!l.q?'<span class="hint warn">Συμπληρώστε ποσότητα ('+esc(l.u)+')</span>':'')+'</div>';
+  const on=L.filter(l=>l.on),off=L.filter(l=>!l.on);
+  return '<div class="card stack"><p class="hint">Οι γραμμές με την ένδειξη «από τις απαντήσεις» ενεργοποιούνται από τις υπηρεσίες (ερωτήσεις 53–69) και παίρνουν ποσότητες από τα μέτρα και τα τεμάχια που δηλώσατε. Μπορείτε να αλλάξετε κάθε ποσότητα ή να προσθέσετε όποια άλλη εργασία θέλετε.</p>'
+   +(dyn?'<div class="banner">Η αυτοψία κρατά τις τιμές που ίσχυαν όταν δημιουργήθηκε. <button class="btn ghost" id="repriceBtn">Ενημέρωση με τον τρέχοντα τιμοκατάλογο</button></div>':'')+'</div>'
+   +'<div class="card stack"><b>Επιλεγμένες εργασίες</b>'+(on.length?on.map(row).join(''):'<p class="hint">Καμία ακόμη. Απαντήστε «Ναι» στις υπηρεσίες ή επιλέξτε από τη λίστα παρακάτω.</p>')
+   +'<div class="tot"><span>Σύνολο (καθαρό)</span><b id="cNet">'+eur(T.net)+'</b></div>'
+   +'<label class="ck"><input type="checkbox" id="vatCk"'+(cur.vat?' checked':'')+'><span>Προσθήκη ΦΠΑ '+VAT+'%</span></label>'
+   +'<div class="tot"'+(cur.vat?'':' hidden')+' id="cVatRow"><span>ΦΠΑ '+VAT+'%</span><b id="cVat">'+eur(T.vat)+'</b></div>'
+   +'<div class="tot big"'+(cur.vat?'':' hidden')+' id="cGrossRow"><span>Σύνολο με ΦΠΑ</span><b id="cGross">'+eur(T.gross)+'</b></div>'
+   +'<button class="btn" id="costBtn">Excel κοστολόγησης</button></div>'
+   +'<details class="card"><summary><b>Άλλες εργασίες τιμοκαταλόγου</b> <small class="hint">('+off.length+')</small></summary><div class="stack" style="margin-top:10px">'+off.map(row).join('')+'</div></details>'}
+function costChanged(){if(!cur)return;const L=costLines(cur),T=costTotal(cur);L.forEach(l=>{const el=document.getElementById('clt-'+l.id);if(el)el.textContent=l.on?eur(l.total):''});
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};set('cNet',eur(T.net));set('cVat',eur(T.vat));set('cGross',eur(T.gross));
+  const ct=document.getElementById('tabc'+COST_SEC);if(ct)ct.textContent=eur(T.gross);updateBottom()}
+function pricesHtml(){
+  return '<div class="stack"><div class="card stack"><p class="hint">Αλλάξτε περιγραφή, μονάδα ή τιμή όταν αλλάξει η σύμβαση. Οι νέες αυτοψίες παίρνουν τις τιμές αυτές. Οι παλιές κρατούν τις δικές τους, εκτός αν πατήσετε «Ενημέρωση» μέσα στην κοστολόγησή τους.</p>'
+   +'<label class="f">ΦΠΑ %<input id="vatIn" value="'+VAT+'" inputmode="decimal" style="max-width:120px"></label></div>'
+   +PRICES.map((it,k)=>'<div class="card pr"><textarea data-pt="'+k+'" rows="3" aria-label="Περιγραφή">'+esc(it.t)+'</textarea><div class="row"><label class="f">Μονάδα<input data-pu="'+k+'" value="'+esc(it.u)+'"></label><label class="f">Τιμή €<input data-pp="'+k+'" value="'+esc(String(it.p).replace('.',','))+'" inputmode="decimal"></label>'+(PRICE_DEFAULT.some(d=>d.id===it.id)?'':'<button class="btn danger" data-pdel="'+k+'">Αφαίρεση</button>')+'</div></div>').join('')
+   +'<div class="row"><button class="btn" id="priceAdd">+ Νέα εργασία</button><button class="btn danger" id="priceReset">Επαναφορά τιμών Novair</button></div></div>'}
+function updateBottom(){let n=0,t=0;Q.filter(visible).forEach(q=>{t++;if(answered(q))n++});const g=costTotal(cur).gross;$('#bottomInfo').textContent=n+' από '+t+' απαντήσεις'+(g>0?' · '+eur(g):'')+(cur.fileId?' · Dynamics':'')}
 function refreshCard(seq){const q=QBY[seq];const el=document.getElementById('card'+seq);if(el)el.classList.toggle('done',answered(q));
-  const k=SECTIONS.findIndex(s=>seq>=s[1]&&seq<=s[2]);const tab=document.querySelector('.tab[data-sec="'+k+'"] small');if(tab){const [n,t]=secCount(k);tab.textContent=n+'/'+t}updateBottom()}
+  const k=SECTIONS.findIndex(s=>seq>=s[1]&&seq<=s[2]);const tab=document.querySelector('.tab[data-sec="'+k+'"] small');if(tab){const [n,t]=secCount(k);tab.textContent=n+'/'+t}const ct=document.getElementById('tabc'+COST_SEC);if(ct)ct.textContent=eur(costTotal(cur).gross);updateBottom()}
 const dependents=seq=>Q.some(q=>q.when&&q.when.q===seq);
 function rerenderKeepScroll(){const y=window.scrollY;render();window.scrollTo(0,y)}
 
@@ -426,7 +564,13 @@ document.addEventListener('click',e=>{
   const t=e.target.closest('button,[data-open]');if(!t)return;
   if(t.id==='newBtn')return createNew();
   if(t.id==='backupBtn')return backupAll();
-  if(t.id==='backBtn')return backToList();
+  if(t.id==='pricesBtn'){view='prices';render();window.scrollTo(0,0);return}
+  if(t.id==='costBtn')return exportCost();
+  if(t.id==='repriceBtn'){cur.prices=JSON.parse(JSON.stringify(PRICES));saveSoon();return rerenderKeepScroll()}
+  if(t.id==='priceAdd'){PRICES.push({id:'c'+Date.now().toString(36),t:'Νέα εργασία',p:0,u:'τεμ.'});savePrices();return rerenderKeepScroll()}
+  if(t.id==='priceReset'){if(t.dataset.sure){PRICES=JSON.parse(JSON.stringify(PRICE_DEFAULT));VAT=24;savePrices();toast('Επανήλθαν οι τιμές Novair.');return rerenderKeepScroll()}t.dataset.sure='1';t.textContent='Πατήστε ξανά για επιβεβαίωση';return}
+  if(t.dataset.pdel!==undefined){PRICES.splice(+t.dataset.pdel,1);savePrices();return rerenderKeepScroll()}
+  if(t.id==='backBtn'){if(view==='prices'){view='list';render();return}return backToList()}
   if(t.id==='exportBtn')return exportXlsx();
   if(t.id==='delAsk'){confirmDel=true;return rerenderKeepScroll()}
   if(t.id==='delNo'){confirmDel=false;return rerenderKeepScroll()}
@@ -434,15 +578,22 @@ document.addEventListener('click',e=>{
   if(t.dataset.open)return openInsp(t.dataset.open);
   if(t.dataset.sec!==undefined){section=+t.dataset.sec;confirmDel=false;render();const tb=document.querySelector('.tabs');if(tb)window.scrollTo(0,0);return}
   if(t.dataset.yn){const s=+t.dataset.yn;const v=cur.answers[s]===t.dataset.v?'':t.dataset.v;setAns(s,v);
-    if(dependents(s))return rerenderKeepScroll();t.parentElement.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));return refreshCard(s)}
+    if(dependents(s))return rerenderKeepScroll();t.parentElement.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));refreshCard(s);return costChanged()}
   if(t.dataset.chip){const s=+t.dataset.chip;const v=cur.answers[s]===t.dataset.v?'':t.dataset.v;setAns(s,v);
-    if(dependents(s))return rerenderKeepScroll();t.parentElement.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));const inp=document.getElementById('q'+s);if(inp)inp.value='';return refreshCard(s)}
+    if(dependents(s))return rerenderKeepScroll();t.parentElement.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));const inp=document.getElementById('q'+s);if(inp)inp.value=QBY[s].type===TX?v:'';refreshCard(s);return costChanged()}
 });
 function radChanged(){(cur.rads||[]).forEach((r,i)=>{const el=document.getElementById('rw'+i);if(el){const w=r?radW(cur,i):null;el.textContent=r?(w!=null?w.toLocaleString('el-GR'):'—'):''}});
   const t=document.getElementById('radTot');if(t)t.textContent=radTotal(cur).toLocaleString('el-GR')+' W';saveSoon();refreshCard(RAD_SEQ)}
-document.addEventListener('input',e=>{const t=e.target;if(!cur)return;
+document.addEventListener('input',e=>{const t=e.target;if(!cur&&view!=='prices')return;
+  if(view==='prices'){
+    if(t.id==='vatIn'){VAT=num(t.value)||0}
+    else if(t.dataset.pt!==undefined)PRICES[+t.dataset.pt].t=t.value;
+    else if(t.dataset.pu!==undefined)PRICES[+t.dataset.pu].u=t.value;
+    else if(t.dataset.pp!==undefined)PRICES[+t.dataset.pp].p=num(t.value);
+    clearTimeout(savePrices.t);savePrices.t=setTimeout(savePrices,600);return}
+  if(t.dataset.cq!==undefined){cur.cost[t.dataset.cq]={...(cur.cost[t.dataset.cq]||{}),qty:t.value};saveSoon();return costChanged()}
   if(t.dataset.meta){cur[t.dataset.meta]=t.value;if(t.dataset.meta==='client')$('#topTitle').textContent=t.value||'Νέα αυτοψία';return saveSoon()}
-  if(t.dataset.ans){const s=+t.dataset.ans;setAns(s,t.value);const card=document.getElementById('card'+s);if(card)card.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===t.value)));return refreshCard(s)}
+  if(t.dataset.ans){const s=+t.dataset.ans;setAns(s,t.value);costChanged();const card=document.getElementById('card'+s);if(card)card.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===t.value)));return refreshCard(s)}
   if(t.dataset.rad!==undefined){const i=+t.dataset.rad;const parts=['rt','rh','rl'].map(p=>(document.getElementById(p+i)||{}).value||'');cur.rads[i]=parts.some(Boolean)?parts.join('/'):'';
     if(t.dataset.part==='0'){const k=kindOf(t.value)||'panel';const h=document.getElementById('rh'+i),l=document.getElementById('rl'+i);h.setAttribute('list','dl-h-'+k);l.setAttribute('list','dl-l-'+k);const cap=document.getElementById('rlc'+i);if(cap)cap.textContent=k==='towel'?'Πλάτος mm':k==='alu'?'Φέτες':'Μήκος mm'}
     radChanged()}
@@ -452,6 +603,8 @@ document.addEventListener('input',e=>{const t=e.target;if(!cur)return;
 document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='fileIn'&&t.files&&t.files[0]){importFile(t.files[0]);t.value=''}
   else if(t.id==='restoreIn'&&t.files&&t.files[0]){restoreAll(t.files[0]);t.value=''}
+  else if(t.dataset&&t.dataset.con!==undefined){const id=t.dataset.con;const l=costLines(cur).find(x=>x.id===id);const o={...(cur.cost[id]||{}),on:t.checked};if(t.checked&&!l.qtxt&&!l.isAuto)o.qty='1';cur.cost[id]=o;saveSoon();rerenderKeepScroll()}
+  else if(t.id==='vatCk'){cur.vat=t.checked;saveSoon();rerenderKeepScroll()}
   else if(t.dataset&&t.dataset.rad!==undefined)t.dispatchEvent(new Event('input',{bubbles:true}));
   else if(t.dataset&&t.dataset.ans&&dependents(+t.dataset.ans))rerenderKeepScroll()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveNow()});
