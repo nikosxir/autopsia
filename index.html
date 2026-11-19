@@ -109,6 +109,16 @@ details summary::after{content:' ▾';color:var(--muted)}
 .pr textarea{min-height:84px}
 .pr .row label{flex:1;min-width:110px}
 .filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.phgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.ph{margin:0;display:flex;flex-direction:column;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px}
+.ph .phimg{border:0;padding:0;background:none;border-radius:8px;overflow:hidden;aspect-ratio:4/3;display:block;width:100%}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph input{padding:8px;font-size:16px;min-width:0;width:100%}
+.ph .btn{padding:6px 10px;font-size:13px}
+.viewer{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:12px}
+.viewer[hidden]{display:none}
+.viewer img{max-width:100%;max-height:100%;object-fit:contain}
+.viewer .btn{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px}
 @media (prefers-reduced-motion:no-preference){.chip,.tab,.yn button{transition:background .12s,border-color .12s}}
 </style>
 
@@ -123,6 +133,7 @@ details summary::after{content:' ▾';color:var(--muted)}
   <button class="btn primary" id="exportBtn">Αποστολή Excel</button>
 </div></div>
 <div class="toast" id="toast" hidden></div>
+<div class="viewer" id="viewer" hidden role="dialog" aria-label="Προβολή φωτογραφίας"><img alt=""><button class="btn" id="phClose">Κλείσιμο</button></div>
 <datalist id="dl-h-panel"><option>300</option><option>400</option><option>450</option><option>500</option><option>600</option><option>900</option></datalist><datalist id="dl-l-panel"><option>400</option><option>500</option><option>600</option><option>700</option><option>800</option><option>900</option><option>1000</option><option>1100</option><option>1200</option><option>1300</option><option>1400</option><option>1500</option><option>1600</option><option>1700</option><option>1800</option><option>1900</option><option>2000</option><option>2200</option><option>2400</option><option>2600</option><option>2800</option><option>3000</option></datalist><datalist id="dl-h-towel"><option>700</option><option>800</option><option>1200</option><option>1500</option><option>1800</option></datalist><datalist id="dl-l-towel"><option>400</option><option>500</option><option>600</option></datalist><datalist id="dl-h-alu"><option>400</option><option>500</option><option>600</option><option>700</option><option>800</option></datalist><datalist id="dl-l-alu"><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option></datalist>
 
 <script>/*!
@@ -215,8 +226,8 @@ const Q=[
  [70,TX,'Παρατηρήσεις extra εργασιών',null,{q:69,v:'Ναι'}],
 ].map(([seq,type,text,opts,when])=>({seq,type,text,opts:opts||null,when:when||null}));
 const QBY=Object.fromEntries(Q.map(q=>[q.seq,q]));
-const SECTIONS=[['Κτίριο',1,15],['Θέρμανση',16,29],['Παροχή',30,31],['Νέο σύστημα',32,52],['Υπηρεσίες',53,70],['Κοστολόγηση',0,0]];
-const COST_SEC=5;
+const SECTIONS=[['Κτίριο',1,15],['Θέρμανση',16,29],['Παροχή',30,31],['Νέο σύστημα',32,52],['Υπηρεσίες',53,70],['Φωτογραφίες',0,0],['Κοστολόγηση',0,0]];
+const PHOTO_SEC=5, COST_SEC=6;
 const RAD_SEQ=21, RAD_N=12, RAD_TYPES=['11','21','22','33','Λουτρού','Αλουμινίου'];
 /* Indicative outputs at ΔT50 (75/65/20, EN 442), typical catalogue values; converted with W=W50·(ΔT/50)^n */
 const PANEL={"11": {"300": 371, "400": 468, "450": 515, "500": 561, "600": 649, "900": 899}, "21": {"300": 517, "400": 662, "450": 731, "500": 799, "600": 931, "900": 1301}, "22": {"300": 645, "400": 842, "450": 932, "500": 1020, "600": 1186, "900": 1654}, "33": {"300": 926, "400": 1191, "450": 1317, "500": 1441, "600": 1680, "900": 2329}},PANEL_N=1.3;const TOWEL={"700": {"400": 280, "500": 330, "600": 390}, "800": {"400": 320, "500": 380, "600": 445}, "1200": {"400": 470, "500": 560, "600": 650}, "1500": {"400": 580, "500": 690, "600": 800}, "1800": {"400": 690, "500": 820, "600": 950}},TOWEL_N=1.2;const ALU={"400": 90, "500": 110, "600": 130, "700": 150, "800": 170},ALU_N=1.3;
@@ -296,7 +307,7 @@ async function loadPrices(){try{const d=await getDoc('prices');if(d&&Array.isArr
 async function savePrices(){try{await putDoc('prices',{kind:'prices',items:PRICES,vat:VAT,updatedAt:new Date().toISOString()});setSave('Αποθηκεύτηκε')}catch(e){toast('Ο τιμοκατάλογος δεν αποθηκεύτηκε.')}}
 
 /* ------------------------------------------------------------------ state */
-let store=null, uid=null, list=[], cur=null, curFile=null, view='list', section=0, saving=Promise.resolve(), dirty=false, timer=null, confirmDel=false, banner='';
+let store=null, uid=null, list=[], cur=null, curFile=null, view='list', section=0, saving=Promise.resolve(), dirty=false, timer=null, confirmDel=false, banner='', photos=[];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2600)}
@@ -335,6 +346,50 @@ function saveNow(){clearTimeout(timer);if(!dirty||!cur)return saving;dirty=false
   return saving}
 function setSave(t){$('#saveState').textContent=t}
 const newId=()=>'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+/* ------------------------------------------------------------------ photos: kept on this device in IndexedDB, one record per photo */
+let pdb=null;
+function photoDb(){return pdb||(pdb=new Promise((res,rej)=>{if(!window.indexedDB)return rej(new Error('Η συσκευή δεν υποστηρίζει αποθήκευση φωτογραφιών.'));const r=indexedDB.open('autopsia_photos',1);
+  r.onupgradeneeded=()=>{r.result.createObjectStore('photos',{keyPath:'id'}).createIndex('insp','insp')};r.onsuccess=()=>res(r.result);r.onerror=()=>{pdb=null;rej(r.error||new Error('Η βάση φωτογραφιών δεν άνοιξε.'))}}))}
+function ptx(mode,fn){return photoDb().then(db=>new Promise((res,rej)=>{const tx=db.transaction('photos',mode);const rq=fn(tx.objectStore('photos'));
+  tx.oncomplete=()=>res(rq?rq.result:undefined);tx.onerror=tx.onabort=()=>rej(tx.error||new Error('Η αποθήκευση φωτογραφίας απέτυχε.'))}))}
+const photosOf=insp=>ptx('readonly',st=>st.index('insp').getAll(insp)).then(a=>(a||[]).sort((x,y)=>(x.addedAt||'').localeCompare(y.addedAt||'')));
+const putPhoto=ph=>ptx('readwrite',st=>st.put(ph));
+const delPhoto=id=>ptx('readwrite',st=>st.delete(id));
+async function delPhotosOf(insp){const a=await photosOf(insp);if(a.length)await ptx('readwrite',st=>{a.forEach(x=>st.delete(x.id))})}
+async function loadPhotos(){const id=cur&&cur.id;photos=[];if(!id)return;try{const a=await photosOf(id);if(!cur||cur.id!==id)return;photos=a;
+  if((cur.photoN||0)!==a.length){cur.photoN=a.length;saveSoon()}photoChanged()}catch(e){}}
+function photoChanged(){const ct=document.getElementById('tabc'+PHOTO_SEC);if(ct)ct.textContent=photos.length;if(view==='edit'&&section===PHOTO_SEC)rerenderKeepScroll()}
+async function loadImg(file){const url=URL.createObjectURL(file);try{const img=new Image();img.src=url;if(img.decode)await img.decode();else await new Promise((a,b)=>{img.onload=a;img.onerror=b});return img}finally{setTimeout(()=>URL.revokeObjectURL(url),15000)}}
+function scaled(img,max){const w=img.naturalWidth,h=img.naturalHeight;const k=Math.min(1,max/Math.max(w,h));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c}
+const canvasBlob=(c,q)=>new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('Η φωτογραφία δεν μετατράπηκε.')),'image/jpeg',q));
+async function addPhotos(files){if(!cur||!files||!files.length)return;const id=cur.id;let ok=0,bad=0;setSave('Αποθήκευση φωτογραφιών…');
+  for(const f of Array.from(files)){try{const img=await loadImg(f);const big=scaled(img,1600);const buf=await (await canvasBlob(big,.8)).arrayBuffer();const thumb=scaled(img,360).toDataURL('image/jpeg',.6);
+      const ph={id:'p'+newId().slice(1),insp:id,buf,type:'image/jpeg',thumb,note:'',w:big.width,h:big.height,addedAt:new Date().toISOString()};await putPhoto(ph);ok++;if(cur&&cur.id===id)photos.push(ph)}catch(e){bad++}}
+  if(cur&&cur.id===id){cur.photoN=photos.length;saveSoon();photoChanged()}
+  toast(bad?(ok?'Προστέθηκαν '+ok+', απέτυχαν '+bad+'.':'Η φωτογραφία δεν αποθηκεύτηκε. Ελέγξτε τον ελεύθερο χώρο του κινητού.'):(ok===1?'Η φωτογραφία προστέθηκε.':'Προστέθηκαν '+ok+' φωτογραφίες.'))}
+async function removePhoto(id){try{await delPhoto(id)}catch(e){toast('Η διαγραφή απέτυχε.');return}photos=photos.filter(x=>x.id!==id);cur.photoN=photos.length;saveSoon();photoChanged()}
+function noteChanged(id,v){const ph=photos.find(x=>x.id===id);if(!ph)return;ph.note=v;clearTimeout(noteChanged.t);setSave('Αποθήκευση…');noteChanged.t=setTimeout(()=>putPhoto(ph).then(()=>setSave('Αποθηκεύτηκε')).catch(()=>toast('Η περιγραφή δεν αποθηκεύτηκε.')),600)}
+const safeName=x=>String(x||'').replace(/[\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim();
+function photoFiles(){const base=(safeName(cur.client).slice(0,40)||'Αυτοψία')+'_'+(cur.date||today());return photos.map((ph,i)=>{const n=safeName(ph.note).slice(0,40);return new File([ph.buf],base+'_'+String(i+1).padStart(2,'0')+(n?'_'+n:'')+'.jpg',{type:'image/jpeg'})})}
+async function sharePhotos(withExcel){if(!cur||!photos.length)return;try{const files=photoFiles();
+    if(withExcel){await saveNow();const x=await buildExport();files.unshift(new File([x.blob],x.name,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}))}
+    if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files,title:cur.client||'Αυτοψία'});return}
+    await zipPhotos(files)}catch(e){if(e&&e.name==='AbortError')toast('Η αποστολή ακυρώθηκε.');else toast('Η αποστολή απέτυχε: '+(e&&e.message||'σφάλμα'))}}
+async function zipPhotos(files){if(!cur||!photos.length)return;if(!window.JSZip)throw new Error('Η βιβλιοθήκη ZIP δεν φορτώθηκε.');files=files||photoFiles();const z=new JSZip();for(const f of files)z.file(f.name,await f.arrayBuffer());
+  const blob=await z.generateAsync({type:'blob'});await giveFile(blob,'Φωτογραφίες_'+(safeName(cur.client).slice(0,40)||'Αυτοψία')+'_'+(cur.date||today())+'.zip')}
+let viewUrl=null;
+function showPhoto(i){const ph=photos[i];if(!ph)return;closePhoto();viewUrl=URL.createObjectURL(new Blob([ph.buf],{type:ph.type||'image/jpeg'}));const v=$('#viewer');v.querySelector('img').src=viewUrl;v.querySelector('img').alt=ph.note||'Φωτογραφία '+(i+1);v.hidden=false}
+function closePhoto(){const v=$('#viewer');v.hidden=true;v.querySelector('img').removeAttribute('src');if(viewUrl){URL.revokeObjectURL(viewUrl);viewUrl=null}}
+function photoHtml(){
+  const add='<div class="card stack"><b>Φωτογραφίες αυτοψίας</b><div class="row"><label class="btn primary filebtn">Λήψη φωτογραφίας<input type="file" id="photoCam" accept="image/*" capture="environment"></label>'
+   +'<label class="btn filebtn">Από τη συλλογή<input type="file" id="photoLib" accept="image/*" multiple></label></div>'
+   +'<p class="hint">Οι φωτογραφίες μικραίνουν αυτόματα (έως 1600 px) και αποθηκεύονται σε αυτό το κινητό μαζί με την αυτοψία. Δεν περιλαμβάνονται στο «Αντίγραφο όλων»· στείλτε τις ή κατεβάστε τις σε ZIP από εδώ.</p></div>';
+  if(!photos.length)return add+'<div class="card empty"><p class="hint">Δεν υπάρχουν φωτογραφίες σε αυτή την αυτοψία.</p></div>';
+  const grid='<div class="phgrid">'+photos.map((ph,i)=>'<figure class="ph"><button class="phimg" data-phview="'+i+'" aria-label="Προβολή φωτογραφίας '+(i+1)+'"><img src="'+ph.thumb+'" alt="'+esc(ph.note||'Φωτογραφία '+(i+1))+'" loading="lazy"></button>'
+   +'<input data-phnote="'+esc(ph.id)+'" value="'+esc(ph.note||'')+'" placeholder="Περιγραφή" aria-label="Περιγραφή φωτογραφίας '+(i+1)+'" autocomplete="off"><button class="btn danger" data-phdel="'+esc(ph.id)+'">Διαγραφή</button></figure>').join('')+'</div>';
+  const send='<div class="row"><button class="btn primary" id="photoShare">Αποστολή φωτογραφιών</button><button class="btn" id="photoShareAll">Αποστολή Excel + φωτογραφιών</button><button class="btn" id="photoZip">Λήψη ZIP</button></div>';
+  return add+grid+send}
 
 /* ------------------------------------------------------------------ Dynamics xlsx: read answers / write back */
 function xmlText(s){return s.replace(/<rPh[\s\S]*?<\/rPh>/g,'').replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&')}
@@ -431,19 +486,20 @@ async function buildSimple(insp){
   return workbook(sh)}
 async function deliver(blob,name){
   await giveFile(blob,name)}
+async function buildExport(){
+  let blob,name;const safe=(cur.client||'Αυτοψία').replace(/[\\/:*?"<>|]+/g,' ').trim().slice(0,60);
+  if(cur.fileId){const fd=curFile||await getDoc(cur.fileId);if(!fd)throw new Error('Δεν βρέθηκε το αρχικό αρχείο Dynamics.');curFile=fd;blob=await buildDynamics(cur,fd);name=(fd.name||'Inspection.xlsx').replace(/\.xlsx$/i,'')+'_συμπληρωμένο.xlsx'}
+  else{blob=await buildSimple(cur);name='Αυτοψία_'+safe+'_'+(cur.date||today())+'.xlsx'}
+  return {blob,name}}
 async function exportXlsx(){
   if(!cur)return;await saveNow();const btn=$('#exportBtn');btn.disabled=true;btn.textContent='Ετοιμάζεται…';
-  try{
-    let blob,name;const safe=(cur.client||'Αυτοψία').replace(/[\\/:*?"<>|]+/g,' ').trim().slice(0,60);
-    if(cur.fileId){const fd=curFile||await getDoc(cur.fileId);if(!fd)throw new Error('Δεν βρέθηκε το αρχικό αρχείο Dynamics.');curFile=fd;blob=await buildDynamics(cur,fd);name=(fd.name||'Inspection.xlsx').replace(/\.xlsx$/i,'')+'_συμπληρωμένο.xlsx'}
-    else{blob=await buildSimple(cur);name='Αυτοψία_'+safe+'_'+(cur.date||today())+'.xlsx'}
-    await deliver(blob,name);
+  try{const x=await buildExport();await deliver(x.blob,x.name);
   }catch(e){if(e&&e.name==='AbortError')toast('Η αποστολή ακυρώθηκε.');else toast('Η λήψη απέτυχε: '+(e.message||'σφάλμα'))}
   finally{btn.disabled=false;btn.textContent='Αποστολή Excel'}
 }
 
 async function giveFile(blob,name){
-  const type=name.endsWith('.json')?'application/json':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const type=name.endsWith('.json')?'application/json':name.endsWith('.zip')?'application/zip':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const file=new File([blob],name,{type});
   if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name});return}
   const url=URL.createObjectURL(file);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);toast('Το αρχείο κατέβηκε.');
@@ -466,10 +522,11 @@ async function importFile(file){
     dirty=true;await saveNow();openEdit();toast('Φορτώθηκαν οι απαντήσεις από το αρχείο.');
   }catch(e){toast(e.message||'Το αρχείο δεν διαβάστηκε.')}
 }
-function openEdit(){view='edit';section=0;confirmDel=false;render();window.scrollTo(0,0)}
+function openEdit(){view='edit';section=0;confirmDel=false;render();window.scrollTo(0,0);loadPhotos()}
 async function openInsp(id){const x=list.find(i=>i.id===id);if(!x)return;cur=JSON.parse(JSON.stringify(x));cur.rads=Array.from({length:RAD_N},(_,i)=>(cur.rads||[])[i]||'');cur.radQty=Array.from({length:RAD_N},(_,i)=>(cur.radQty||[])[i]||'');if(!cur.cond)cur.cond={tin:75,tout:60,troom:20};if(!cur.prices||!cur.prices.length)cur.prices=JSON.parse(JSON.stringify(PRICES));if(!cur.cost)cur.cost={};curFile=null;openEdit()}
-async function backToList(){await saveNow();view='list';cur=null;setSave('');render();window.scrollTo(0,0)}
+async function backToList(){await saveNow();view='list';cur=null;photos=[];setSave('');render();window.scrollTo(0,0)}
 async function removeCur(){const c=cur;await saveNow();try{await delDoc(c.id);if(c.fileId)await delDoc(c.fileId)}catch(e){toast('Η διαγραφή απέτυχε.');return}
+  try{await delPhotosOf(c.id)}catch(e){}photos=[];
   if(store.kind==='local')list=list.filter(i=>i.id!==c.id);view='list';cur=null;setSave('');render();toast('Η αυτοψία διαγράφηκε.')}
 function setAns(seq,v){if(v===''||v==null)delete cur.answers[seq];else cur.answers[seq]=v;saveSoon()}
 
@@ -484,21 +541,21 @@ function listHtml(){
   const b=banner?'<div class="banner">'+esc(banner)+'</div>':'';
   const actions='<div class="row"><button class="btn primary" id="newBtn">+ Νέα αυτοψία</button><label class="btn filebtn">Άνοιγμα αρχείου Dynamics<input type="file" id="fileIn" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label><button class="btn" id="pricesBtn">Τιμοκατάλογος</button></div>'
    +'<p class="hint">Με το αρχείο Dynamics της αυτοψίας, η «Αποστολή Excel» δίνει το ίδιο αρχείο συμπληρωμένο, έτοιμο για εισαγωγή. Χωρίς αρχείο, δίνει απλό Excel με ερωτήσεις και απαντήσεις.</p>';
-  const backup='<div class="card stack"><b>Αντίγραφο ασφαλείας</b><p class="hint">Οι αυτοψίες αποθηκεύονται μόνο σε αυτό το κινητό. Κρατάτε τακτικά αντίγραφο στα Αρχεία ή στο OneDrive· αν διαγραφεί η εφαρμογή ή αλλάξετε κινητό, επαναφέρονται από εκεί.</p><div class="row"><button class="btn" id="backupBtn">Αντίγραφο όλων</button><label class="btn filebtn">Επαναφορά<input type="file" id="restoreIn" accept=".json,application/json"></label></div></div>';
+  const backup='<div class="card stack"><b>Αντίγραφο ασφαλείας</b><p class="hint">Οι αυτοψίες αποθηκεύονται μόνο σε αυτό το κινητό. Κρατάτε τακτικά αντίγραφο στα Αρχεία ή στο OneDrive· αν διαγραφεί η εφαρμογή ή αλλάξετε κινητό, επαναφέρονται από εκεί. Το αντίγραφο δεν περιέχει τις φωτογραφίες· αυτές στέλνονται ή κατεβαίνουν σε ZIP μέσα από κάθε αυτοψία.</p><div class="row"><button class="btn" id="backupBtn">Αντίγραφο όλων</button><label class="btn filebtn">Επαναφορά<input type="file" id="restoreIn" accept=".json,application/json"></label></div></div>';
   if(!store)return '<div class="stack">'+actions+'<p class="hint">Φόρτωση…</p></div>';
   if(!list.length)return '<div class="stack">'+b+actions+'<div class="card empty"><h2>Δεν υπάρχουν αυτοψίες ακόμη</h2><p class="hint">Πατήστε «Νέα αυτοψία» ή ανοίξτε το αρχείο που εξάγατε από το Dynamics. Κάθε αλλαγή αποθηκεύεται αυτόματα.</p></div>'+backup+'</div>';
   return '<div class="stack">'+b+actions+list.map(i=>{const [n,t]=progress(i);return '<button class="insp" data-open="'+esc(i.id)+'"><div class="row" style="justify-content:space-between"><b>'+esc(i.client||'Χωρίς όνομα')+'</b>'+(i.fileId?'<span class="tag">DYNAMICS</span>':'')+'</div>'
-    +'<div class="meta"><span>'+esc(i.address||'—')+'</span><span>'+esc(fmtDate(i.date))+'</span><span>'+n+' / '+t+' απαντήσεις</span></div><div class="bar"><i style="width:'+Math.round(100*n/Math.max(t,1))+'%"></i></div></button>'}).join('')+backup+'</div>';
+    +'<div class="meta"><span>'+esc(i.address||'—')+'</span><span>'+esc(fmtDate(i.date))+'</span><span>'+n+' / '+t+' απαντήσεις</span>'+(i.photoN?'<span>'+i.photoN+' φωτ.</span>':'')+'</div><div class="bar"><i style="width:'+Math.round(100*n/Math.max(t,1))+'%"></i></div></button>'}).join('')+backup+'</div>';
 }
-function secCount(k){if(k===COST_SEC)return [0,0];const [,a,b]=SECTIONS[k];const qs=Q.filter(q=>q.seq>=a&&q.seq<=b&&visible(q));return [qs.filter(answered).length,qs.length]}
+function secCount(k){if(k===COST_SEC||k===PHOTO_SEC)return [0,0];const [,a,b]=SECTIONS[k];const qs=Q.filter(q=>q.seq>=a&&q.seq<=b&&visible(q));return [qs.filter(answered).length,qs.length]}
 function editHtml(){
   const head='<div class="card stack"><label class="f" for="cl">Πελάτης<input id="cl" data-meta="client" value="'+esc(cur.client)+'" placeholder="Ονοματεπώνυμο πελάτη" autocomplete="off"></label>'
    +'<label class="f" for="ad">Διεύθυνση<input id="ad" data-meta="address" value="'+esc(cur.address)+'" placeholder="Οδός, αριθμός, περιοχή" autocomplete="off"></label>'
    +'<label class="f" for="dt">Ημερομηνία αυτοψίας<input id="dt" type="date" data-meta="date" value="'+esc(cur.date)+'"></label>'
    +(cur.fileName?'<p class="hint">Αρχείο Dynamics: '+esc(cur.fileName)+'</p>':'')+'</div>';
-  const tabs='<div class="tabs" role="tablist">'+SECTIONS.map((s,k)=>{const [n,t]=secCount(k);return '<button class="tab" role="tab" data-sec="'+k+'" aria-selected="'+(k===section)+'">'+s[0]+'<small id="tabc'+k+'">'+(k===COST_SEC?eur(costTotal(cur).gross):n+'/'+t)+'</small></button>'}).join('')+'</div>';
+  const tabs='<div class="tabs" role="tablist">'+SECTIONS.map((s,k)=>{const [n,t]=secCount(k);return '<button class="tab" role="tab" data-sec="'+k+'" aria-selected="'+(k===section)+'">'+s[0]+'<small id="tabc'+k+'">'+(k===COST_SEC?eur(costTotal(cur).gross):k===PHOTO_SEC?photos.length:n+'/'+t)+'</small></button>'}).join('')+'</div>';
   const [,a,b]=SECTIONS[section];
-  const qs=section===COST_SEC?costHtml():Q.filter(q=>q.seq>=a&&q.seq<=b&&visible(q)).map(qHtml).join('');
+  const qs=section===COST_SEC?costHtml():section===PHOTO_SEC?photoHtml():Q.filter(q=>q.seq>=a&&q.seq<=b&&visible(q)).map(qHtml).join('');
   const next=section<SECTIONS.length-1?'<button class="btn" data-sec="'+(section+1)+'">Επόμενο: '+SECTIONS[section+1][0]+' ›</button>':'';
   const del=confirmDel?'<div class="confirm"><b>Διαγραφή αυτής της αυτοψίας;</b><span class="hint">Δεν αναιρείται.</span><div class="row"><button class="btn danger" id="delYes">Διαγραφή</button><button class="btn" id="delNo">Άκυρο</button></div></div>':'<button class="btn danger" id="delAsk">Διαγραφή αυτοψίας</button>';
   return '<div class="stack">'+head+tabs+qs+'<div class="row" style="justify-content:space-between">'+next+'</div>'+(section===SECTIONS.length-1?del:'')+'</div>';
@@ -562,6 +619,12 @@ function rerenderKeepScroll(){const y=window.scrollY;render();window.scrollTo(0,
 /* ------------------------------------------------------------------ events */
 document.addEventListener('click',e=>{
   const t=e.target.closest('button,[data-open]');if(!t)return;
+  if(t.id==='phClose')return closePhoto();
+  if(t.id==='photoShare')return sharePhotos(false);
+  if(t.id==='photoShareAll')return sharePhotos(true);
+  if(t.id==='photoZip')return zipPhotos().catch(e=>toast(e.message||'Το ZIP απέτυχε.'));
+  if(t.dataset.phview!==undefined)return showPhoto(+t.dataset.phview);
+  if(t.dataset.phdel){if(t.dataset.sure)return removePhoto(t.dataset.phdel);t.dataset.sure='1';t.textContent='Σίγουρα;';return}
   if(t.id==='newBtn')return createNew();
   if(t.id==='backupBtn')return backupAll();
   if(t.id==='pricesBtn'){view='prices';render();window.scrollTo(0,0);return}
@@ -591,6 +654,7 @@ document.addEventListener('input',e=>{const t=e.target;if(!cur&&view!=='prices')
     else if(t.dataset.pu!==undefined)PRICES[+t.dataset.pu].u=t.value;
     else if(t.dataset.pp!==undefined)PRICES[+t.dataset.pp].p=num(t.value);
     clearTimeout(savePrices.t);savePrices.t=setTimeout(savePrices,600);return}
+  if(t.dataset.phnote)return noteChanged(t.dataset.phnote,t.value);
   if(t.dataset.cq!==undefined){cur.cost[t.dataset.cq]={...(cur.cost[t.dataset.cq]||{}),qty:t.value};saveSoon();return costChanged()}
   if(t.dataset.meta){cur[t.dataset.meta]=t.value;if(t.dataset.meta==='client')$('#topTitle').textContent=t.value||'Νέα αυτοψία';return saveSoon()}
   if(t.dataset.ans){const s=+t.dataset.ans;setAns(s,t.value);costChanged();const card=document.getElementById('card'+s);if(card)card.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===t.value)));return refreshCard(s)}
@@ -603,6 +667,7 @@ document.addEventListener('input',e=>{const t=e.target;if(!cur&&view!=='prices')
 document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='fileIn'&&t.files&&t.files[0]){importFile(t.files[0]);t.value=''}
   else if(t.id==='restoreIn'&&t.files&&t.files[0]){restoreAll(t.files[0]);t.value=''}
+  else if((t.id==='photoCam'||t.id==='photoLib')&&t.files&&t.files.length){const fs=Array.from(t.files);t.value='';addPhotos(fs)}
   else if(t.dataset&&t.dataset.con!==undefined){const id=t.dataset.con;const l=costLines(cur).find(x=>x.id===id);const o={...(cur.cost[id]||{}),on:t.checked};if(t.checked&&!l.qtxt&&!l.isAuto)o.qty='1';cur.cost[id]=o;saveSoon();rerenderKeepScroll()}
   else if(t.id==='vatCk'){cur.vat=t.checked;saveSoon();rerenderKeepScroll()}
   else if(t.dataset&&t.dataset.rad!==undefined)t.dispatchEvent(new Event('input',{bubbles:true}));
