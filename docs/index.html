@@ -537,7 +537,7 @@ async function exportCost(){
   catch(e){if(e&&(e.code==='declined'||e.name==='AbortError'))toast('Ακυρώθηκε.');else toast('Η λήψη απέτυχε: '+(e.message||e.code||'σφάλμα'))}
   finally{if(btn){btn.disabled=false;btn.textContent='Excel κοστολόγησης'}}}
 async function buildSimple(insp){
-  const rows=[['Πελάτης',insp.client||''],['Διεύθυνση',insp.address||''],['Ημερομηνία αυτοψίας',fmtDate(insp.date)],['Συντάκτης','Νικόλαος Ξηροφώτος, Μηχανολόγος Μηχανικός'],[],[{t:'Α/Α',s:1},{t:'Ερώτηση',s:1},{t:'Απάντηση',s:1}]];
+  const rows=[['Πελάτης',insp.client||''],['Διεύθυνση',insp.address||''],['Περιοχή',areaOf(insp)],['Ημερομηνία αυτοψίας',fmtDate(insp.date)],['Συντάκτης','Νικόλαος Ξηροφώτος, Μηχανολόγος Μηχανικός'],[],[{t:'Α/Α',s:1},{t:'Ερώτηση',s:1},{t:'Απάντηση',s:1}]];
   Q.forEach(q=>{const c=cur;cur=insp;const vis=visible(q);cur=c;if(vis)rows.push([String(q.seq),q.text,answerFor(insp,q.seq)])});
   (insp.rads||[]).forEach((v,i)=>{if(v){const w=radW(insp,i);rows.push(['21.'+(i+1),'Σώμα '+(i+1)+' · '+qtyOf(insp,i)+' τεμ.',v+(w!=null?' · '+w+' W':'')])}});
   const sh=[{name:'Αυτοψία',xml:sheetXml(rows,[20,70,40])}];
@@ -556,7 +556,9 @@ async function exportXlsx(){
   }catch(e){if(e&&e.name==='AbortError')toast('Η αποστολή ακυρώθηκε.');else toast('Η λήψη απέτυχε: '+(e.message||'σφάλμα'))}
 }
 /* one ZIP per inspection: a folder named after the client with the Excel, the cost sheet and the photos */
-const folderName=()=>(safeName(cur.client).slice(0,50)||'Αυτοψία')+'_'+(cur.date||today());
+/* area: its own field; older inspections fall back to the part of the address after the last comma */
+const areaOf=i=>{const a=String(i.area||'').trim();if(a)return a;const p=String(i.address||'').split(',');return p.length>1?p[p.length-1].trim():''};
+const folderName=()=>{const a=safeName(areaOf(cur)).slice(0,30);return (safeName(cur.client).slice(0,50)||'Αυτοψία')+(a?'_'+a:'')+'_'+(cur.date||today())};
 async function buildFolderZip(){
   if(!window.JSZip)throw new Error('Η βιβλιοθήκη ZIP δεν φορτώθηκε.');
   const base=folderName();const z=new JSZip();const dir=z.folder(base);
@@ -576,7 +578,7 @@ function sheetHtml(){
   if(readyFile)return '<h2>Ο φάκελος είναι έτοιμος</h2><button class="opt primary" id="optReady"><b>Αποστολή «'+esc(readyFile.name)+'»</b><span>Επιλέξτε Viber → Οι σημειώσεις μου, ή «Αποθήκευση στα Αρχεία».</span></button><button class="btn" id="sheetClose">Άκυρο</button>';
   const n=photos.length;
   return '<h2>Αποστολή αυτοψίας</h2>'
-   +'<button class="opt primary" id="optZip"><b>Φάκελος ZIP</b><span>Excel'+(n?' και '+n+' φωτογραφί'+(n===1?'α':'ες'):'')+' σε ένα αρχείο με το όνομα του πελάτη. Για Viber (Οι σημειώσεις μου) ή Αρχεία.</span></button>'
+   +'<button class="opt primary" id="optZip"><b>Φάκελος ZIP</b><span>Excel'+(n?' και '+n+' φωτογραφί'+(n===1?'α':'ες'):'')+' σε ένα αρχείο: «'+esc(folderName())+'.zip». Για Viber (Οι σημειώσεις μου) ή Αρχεία.</span></button>'
    +'<button class="opt" id="optXlsx"><b>Μόνο Excel</b><span>'+(cur.fileId?'Το αρχείο Dynamics συμπληρωμένο, έτοιμο για εισαγωγή.':'Ερωτήσεις και απαντήσεις.')+'</span></button>'
    +'<button class="opt" id="optPhotos"'+(n?'':' disabled')+'><b>Μόνο φωτογραφίες</b><span>'+(n?n+' αρχεί'+(n===1?'ο':'α')+' JPG, ξεχωριστά.':'Δεν υπάρχουν φωτογραφίες σε αυτή την αυτοψία.')+'</span></button>'
    +'<button class="btn" id="sheetClose">Άκυρο</button>'}
@@ -633,7 +635,7 @@ document.addEventListener('pointerdown',e=>{const h=e.target.closest&&e.target.c
 window.addEventListener('resize',()=>{if(meas)layoutMeasure()});
 
 /* ------------------------------------------------------------------ actions */
-function blank(){return {kind:'insp',client:'',address:'',date:today(),answers:{},rads:Array(RAD_N).fill(''),radQty:Array(RAD_N).fill(''),cond:{tin:75,tout:60,troom:20},fileId:null,fileName:'',updatedAt:'',prices:JSON.parse(JSON.stringify(PRICES)),cost:{},vat:false}}
+function blank(){return {kind:'insp',client:'',address:'',area:'',date:today(),answers:{},rads:Array(RAD_N).fill(''),radQty:Array(RAD_N).fill(''),cond:{tin:75,tout:60,troom:20},fileId:null,fileName:'',updatedAt:'',prices:JSON.parse(JSON.stringify(PRICES)),cost:{},vat:false}}
 async function createNew(){cur={id:newId(),...blank()};curFile=null;dirty=true;await saveNow();openEdit()}
 async function importFile(file){
   try{
@@ -666,23 +668,24 @@ function listHtml(){
   const backup='<details class="card"><summary><b>Αντίγραφο ασφαλείας</b></summary><div class="stack" style="margin-top:10px"><p class="hint">Οι αυτοψίες αποθηκεύονται μόνο σε αυτό το κινητό. Κρατάτε τακτικά αντίγραφο στα Αρχεία ή στο OneDrive· αν διαγραφεί η εφαρμογή ή αλλάξετε κινητό, επαναφέρονται από εκεί. Το αντίγραφο δεν περιέχει τις φωτογραφίες· αυτές φεύγουν με τον «Φάκελο ZIP» κάθε αυτοψίας.</p><div class="row"><button class="btn" id="backupBtn">Αντίγραφο όλων</button><label class="btn filebtn">Επαναφορά<input type="file" id="restoreIn" accept=".json,application/json"></label></div></div></details>';
   if(!store)return '<div class="stack">'+actions+'<p class="hint">Φόρτωση…</p></div>';
   if(!list.length)return '<div class="stack">'+b+actions+'<div class="card empty"><h2>Δεν υπάρχουν αυτοψίες ακόμη</h2><p class="hint">Πατήστε «Νέα αυτοψία» ή ανοίξτε το αρχείο που εξάγατε από το Dynamics. Κάθε αλλαγή αποθηκεύεται αυτόματα.</p></div>'+help+backup+'</div>';
-  const search=list.length>3?'<input class="search" id="searchIn" type="search" value="'+esc(listFilter)+'" placeholder="Αναζήτηση πελάτη ή διεύθυνσης" aria-label="Αναζήτηση αυτοψίας" autocomplete="off">':'';
-  const cards=list.map(i=>{const [n,t]=progress(i);const pc=Math.round(100*n/Math.max(t,1));const key=((i.client||'')+' '+(i.address||'')).toLowerCase();
+  const search=list.length>3?'<input class="search" id="searchIn" type="search" value="'+esc(listFilter)+'" placeholder="Αναζήτηση πελάτη, διεύθυνσης ή περιοχής" aria-label="Αναζήτηση αυτοψίας" autocomplete="off">':'';
+  const cards=list.map(i=>{const [n,t]=progress(i);const pc=Math.round(100*n/Math.max(t,1));const key=((i.client||'')+' '+(i.address||'')+' '+(i.area||'')).toLowerCase();
     const tags=(i.fileId?'<span class="tag">DYNAMICS</span>':'')+(i.photoN?'<span class="tag plain">'+i.photoN+' φωτ.</span>':'');
     return '<button class="insp" data-open="'+esc(i.id)+'" data-key="'+esc(key)+'"'+(matches(key)?'':' hidden')+'><div class="head"><b>'+esc(i.client||'Χωρίς όνομα')+'</b><span class="pct'+(pc===100?' full':'')+'">'+(pc===100?'✓ Πλήρης':pc+'%')+'</span></div>'
-    +'<div class="meta"><span>'+esc(i.address||'—')+'</span><span>'+esc(fmtDate(i.date))+'</span></div>'+(tags?'<div class="tags">'+tags+'</div>':'')+'<div class="bar"><i style="width:'+pc+'%"></i></div></button>'}).join('');
+    +'<div class="meta"><span>'+esc(i.address||'—')+'</span>'+(i.area?'<span>'+esc(i.area)+'</span>':'')+'<span>'+esc(fmtDate(i.date))+'</span></div>'+(tags?'<div class="tags">'+tags+'</div>':'')+'<div class="bar"><i style="width:'+pc+'%"></i></div></button>'}).join('');
   return '<div class="stack">'+b+actions+search+'<p class="sum"><span id="listCount">'+countText()+'</span></p>'+cards+help+backup+'</div>';
 }
 const matches=key=>!listFilter||key.includes(listFilter.toLowerCase().trim());
-function countText(){const n=list.filter(i=>matches(((i.client||'')+' '+(i.address||'')).toLowerCase())).length;return listFilter?n+' από '+list.length+' αυτοψίες':list.length+' αυτοψί'+(list.length===1?'α':'ες')}
+function countText(){const n=list.filter(i=>matches(((i.client||'')+' '+(i.address||'')+' '+(i.area||'')).toLowerCase())).length;return listFilter?n+' από '+list.length+' αυτοψίες':list.length+' αυτοψί'+(list.length===1?'α':'ες')}
 function applyFilter(){document.querySelectorAll('.insp[data-key]').forEach(el=>{el.hidden=!matches(el.dataset.key)});const c=document.getElementById('listCount');if(c)c.textContent=countText()}
 function secCount(k){if(k===COST_SEC||k===PHOTO_SEC)return [0,0];const [,a,b]=SECTIONS[k];const qs=Q.filter(q=>q.seq>=a&&q.seq<=b&&visible(q));return [qs.filter(answered).length,qs.length]}
 function editHtml(){
   const head=section===0?'<div class="card stack"><label class="f" for="cl">Πελάτης<input id="cl" data-meta="client" value="'+esc(cur.client)+'" placeholder="Ονοματεπώνυμο πελάτη" autocomplete="off"></label>'
-   +'<label class="f" for="ad">Διεύθυνση<input id="ad" data-meta="address" value="'+esc(cur.address)+'" placeholder="Οδός, αριθμός, περιοχή" autocomplete="off"></label>'
+   +'<label class="f" for="ad">Διεύθυνση<input id="ad" data-meta="address" value="'+esc(cur.address)+'" placeholder="Οδός, αριθμός" autocomplete="off"></label>'
+   +'<label class="f" for="ar">Περιοχή<input id="ar" data-meta="area" value="'+esc(cur.area||'')+'" placeholder="'+esc(areaOf({address:cur.address})||'π.χ. Ελευσίνα')+'" autocomplete="off"></label>'
    +'<label class="f" for="dt">Ημερομηνία αυτοψίας<input id="dt" type="date" data-meta="date" value="'+esc(cur.date)+'"></label>'
    +(cur.fileName?'<p class="hint">Αρχείο Dynamics: '+esc(cur.fileName)+'</p>':'')+'</div>'
-   :'<p class="sum"><span>'+esc(cur.address||'Χωρίς διεύθυνση')+'</span><span>'+esc(fmtDate(cur.date))+'</span></p>';
+   :'<p class="sum"><span>'+esc(cur.address||'Χωρίς διεύθυνση')+'</span>'+(cur.area?'<span>'+esc(cur.area)+'</span>':'')+'<span>'+esc(fmtDate(cur.date))+'</span></p>';
   const tabs='<div class="tabs" role="tablist">'+SECTIONS.map((s,k)=>{const [n,t]=secCount(k);const full=t>0&&n===t;return '<button class="tab'+(full?' full':'')+'" role="tab" data-sec="'+k+'" aria-selected="'+(k===section)+'">'+s[0]+'<small id="tabc'+k+'">'+(k===COST_SEC?eur(costTotal(cur).gross):k===PHOTO_SEC?photos.length:full?'✓':n+'/'+t)+'</small></button>'}).join('')+'</div>';
   const [,a,b]=SECTIONS[section];
   const qs=section===COST_SEC?costHtml():section===PHOTO_SEC?photoHtml():Q.filter(q=>q.seq>=a&&q.seq<=b&&visible(q)).map(qHtml).join('');
