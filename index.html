@@ -136,6 +136,28 @@ details summary::after{content:' ▾';color:var(--muted)}
 .opt.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .opt.primary span{color:var(--accent-ink);opacity:.85}
 .opt:disabled{opacity:.5}
+.rad{grid-template-areas:'n t t q w' '. h h l l' '. m m m m'}
+.rad .fm{grid-area:m;justify-self:start;padding:6px 10px;font-size:13px;font-weight:600;color:var(--accent)}
+.meas{position:fixed;inset:0;z-index:45;background:#0b1114;color:#fff;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.meas[hidden]{display:none}
+.meas .mtop,.meas .mbot{padding:10px 14px;display:flex;flex-direction:column;gap:8px;background:#141d22}
+.meas .mtop .row{justify-content:space-between;flex-wrap:nowrap}
+.meas .mtop label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+.meas .mtop input{width:96px;padding:8px;background:#0b1114;color:#fff;border-color:#3a4a54}
+.meas .btn{background:#1e2a31;border-color:#3a4a54;color:#fff}
+.meas .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.meas .mhint{font-size:12px;line-height:1.4;color:#b9c6ce;margin:0}
+.meas .mout{font-size:15px;font-weight:700;margin:0;font-variant-numeric:tabular-nums}
+.meas .ck{font-size:13px;font-weight:500;align-items:center}
+.mstage{flex:1;min-height:0;position:relative;overflow:hidden;touch-action:none}
+.mstage img,.mstage svg{position:absolute;display:block;max-width:none}
+.mstage svg{pointer-events:none}
+.mh{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;touch-action:none;display:flex;align-items:center;justify-content:center}
+.mh::before{content:"";width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.55)}
+.mh.h::before{background:#2fbf71}.mh.w::before{background:#ff9f1a}
+.mh.drag::before{background:transparent}
+.mloupe{position:absolute;top:8px;left:8px;width:132px;height:132px;border-radius:12px;border:2px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.6);pointer-events:none}
+.mloupe.right{left:auto;right:8px}
 .phgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .ph{margin:0;display:flex;flex-direction:column;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px}
 .ph .phimg{border:0;padding:0;background:none;border-radius:8px;overflow:hidden;aspect-ratio:4/3;display:block;width:100%}
@@ -159,6 +181,15 @@ details summary::after{content:' ▾';color:var(--muted)}
   <div class="grow" id="bottomInfo"></div>
   <button class="btn primary" id="sendBtn">Αποστολή</button>
 </div></div>
+<div class="meas" id="meas" hidden role="dialog" aria-label="Μέτρηση σώματος από φωτογραφία">
+  <div class="mtop"><div class="row"><b id="measTitle">Σώμα</b><label>Ύψος mm<input id="measH" inputmode="numeric" autocomplete="off"></label><button class="btn" id="measClose">Άκυρο</button></div>
+   <p class="mhint">Σύρετε τα <b style="color:#2fbf71">πράσινα</b> σημεία στην πάνω και κάτω άκρη του σώματος και τα <b style="color:#ff9f1a">πορτοκαλί</b> στην αριστερή και δεξιά άκρη. Η φωτογραφία πρέπει να είναι από μπροστά.</p></div>
+  <div class="mstage" id="measStage"><img id="measImg" alt="Φωτογραφία σώματος"><svg id="measSvg"><line id="mlh" stroke="#2fbf71" stroke-width="3"/><line id="mlw" stroke="#ff9f1a" stroke-width="3"/></svg>
+   <div class="mh h" data-mh="0" role="slider" aria-label="Πάνω άκρη"></div><div class="mh h" data-mh="1" role="slider" aria-label="Κάτω άκρη"></div><div class="mh w" data-mh="2" role="slider" aria-label="Αριστερή άκρη"></div><div class="mh w" data-mh="3" role="slider" aria-label="Δεξιά άκρη"></div>
+   <canvas class="mloupe" id="measLoupe" width="264" height="264" hidden></canvas></div>
+  <div class="mbot"><p class="mout" id="measOut"></p><div class="row"><button class="btn primary" id="measUse">Χρήση</button><button class="btn" id="measExact">Ακριβές</button></div>
+   <label class="ck"><input type="checkbox" id="measKeep" checked style="width:20px;height:20px;accent-color:var(--accent)"><span>Αποθήκευση και στις φωτογραφίες της αυτοψίας</span></label></div>
+</div>
 <div class="sheet" id="sheet" hidden role="dialog" aria-label="Αποστολή αυτοψίας"><div class="panel" id="sheetPanel"></div></div>
 <div class="toast" id="toast" hidden></div>
 <div class="viewer" id="viewer" hidden role="dialog" aria-label="Προβολή φωτογραφίας"><img alt=""><button class="btn" id="phClose">Κλείσιμο</button></div>
@@ -391,9 +422,9 @@ function photoChanged(){const ct=document.getElementById('tabc'+PHOTO_SEC);if(ct
 async function loadImg(file){const url=URL.createObjectURL(file);try{const img=new Image();img.src=url;if(img.decode)await img.decode();else await new Promise((a,b)=>{img.onload=a;img.onerror=b});return img}finally{setTimeout(()=>URL.revokeObjectURL(url),15000)}}
 function scaled(img,max){const w=img.naturalWidth,h=img.naturalHeight;const k=Math.min(1,max/Math.max(w,h));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c}
 const canvasBlob=(c,q)=>new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('Η φωτογραφία δεν μετατράπηκε.')),'image/jpeg',q));
-async function addPhotos(files){if(!cur||!files||!files.length)return;const id=cur.id;let ok=0,bad=0;setSave('Αποθήκευση φωτογραφιών…');
+async function addPhotos(files,note){if(!cur||!files||!files.length)return;const id=cur.id;let ok=0,bad=0;setSave('Αποθήκευση φωτογραφιών…');
   for(const f of Array.from(files)){try{const img=await loadImg(f);const big=scaled(img,1600);const buf=await (await canvasBlob(big,.8)).arrayBuffer();const thumb=scaled(img,360).toDataURL('image/jpeg',.6);
-      const ph={id:'p'+newId().slice(1),insp:id,buf,type:'image/jpeg',thumb,note:'',w:big.width,h:big.height,addedAt:new Date().toISOString()};await putPhoto(ph);ok++;if(cur&&cur.id===id)photos.push(ph)}catch(e){bad++}}
+      const ph={id:'p'+newId().slice(1),insp:id,buf,type:'image/jpeg',thumb,note:note||'',w:big.width,h:big.height,addedAt:new Date().toISOString()};await putPhoto(ph);ok++;if(cur&&cur.id===id)photos.push(ph)}catch(e){bad++}}
   if(cur&&cur.id===id){cur.photoN=photos.length;saveSoon();photoChanged()}
   toast(bad?(ok?'Προστέθηκαν '+ok+', απέτυχαν '+bad+'.':'Η φωτογραφία δεν αποθηκεύτηκε. Ελέγξτε τον ελεύθερο χώρο του κινητού.'):(ok===1?'Η φωτογραφία προστέθηκε.':'Προστέθηκαν '+ok+' φωτογραφίες.'))}
 async function removePhoto(id){try{await delPhoto(id)}catch(e){toast('Η διαγραφή απέτυχε.');return}photos=photos.filter(x=>x.id!==id);cur.photoN=photos.length;saveSoon();photoChanged()}
@@ -564,6 +595,43 @@ async function restoreAll(file){try{const j=JSON.parse(await file.text());if(!j|
   for(const [k,v] of Object.entries(j.docs)){if(!all[k]||(v.updatedAt||'')>(all[k].updatedAt||'')){all[k]=v;if(v.kind==='insp')n++}}
   if(!lsPut(all))throw new Error('Δεν υπάρχει χώρος στη συσκευή.');useLocal();toast('Επαναφέρθηκαν '+n+' αυτοψίες.')}catch(e){toast(e&&e.message?e.message:'Το αρχείο δεν είναι αντίγραφο αυτής της εφαρμογής.')}}
 
+
+/* ------------------------------------------------------------------ radiator length from a photo: the known height gives the scale */
+const ALU_PITCH=80; /* mm per section, typical aluminium radiator */
+const measLabel=k=>(k==='alu'?'Φέτες':k==='towel'?'Πλάτος':'Μήκος')+' από φωτογραφία';
+let meas=null;
+function openMeasure(i,file){if(!cur||!file)return;const t=(document.getElementById('rt'+i)||{}).value||'';const url=URL.createObjectURL(file);
+  meas={i,file,url,kind:kindOf(t)||'panel',pts:[[.5,.28],[.5,.72],[.2,.5],[.8,.5]],nw:0,nh:0,box:null};
+  const img=$('#measImg');img.onload=()=>{if(!meas)return;meas.nw=img.naturalWidth;meas.nh=img.naturalHeight;layoutMeasure()};img.onerror=()=>{closeMeasure();toast('Η φωτογραφία δεν άνοιξε.')};img.src=url;
+  $('#measTitle').textContent='Σώμα '+(i+1);$('#measH').value=(document.getElementById('rh'+i)||{}).value||'';$('#measH').setAttribute('list','dl-h-'+meas.kind);$('#measKeep').checked=true;$('#measLoupe').hidden=true;$('#meas').hidden=false;measResult()}
+function closeMeasure(){if(!meas)return;URL.revokeObjectURL(meas.url);meas=null;$('#meas').hidden=true;$('#measImg').removeAttribute('src')}
+function layoutMeasure(){if(!meas||!meas.nw)return;const st=$('#measStage');const W=st.clientWidth,H=st.clientHeight;const k=Math.min(W/meas.nw,H/meas.nh);const w=meas.nw*k,h=meas.nh*k,x=(W-w)/2,y=(H-h)/2;meas.box={x,y,w,h};
+  for(const el of [$('#measImg'),$('#measSvg')]){el.style.left=x+'px';el.style.top=y+'px';el.style.width=w+'px';el.style.height=h+'px'}$('#measSvg').setAttribute('viewBox','0 0 '+w+' '+h);drawMeasure()}
+function drawMeasure(){if(!meas||!meas.box)return;const b=meas.box,P=meas.pts.map(p=>[p[0]*b.w,p[1]*b.h]);
+  document.querySelectorAll('.mh').forEach(el=>{const p=P[+el.dataset.mh];el.style.left=(b.x+p[0])+'px';el.style.top=(b.y+p[1])+'px'});
+  const ln=(id,a,c)=>{const l=document.getElementById(id);l.setAttribute('x1',a[0]);l.setAttribute('y1',a[1]);l.setAttribute('x2',c[0]);l.setAttribute('y2',c[1])};ln('mlh',P[0],P[1]);ln('mlw',P[2],P[3]);measResult()}
+function measValue(){if(!meas||!meas.nw)return null;const H=num($('#measH').value);if(!(H>0))return null;const d=(a,c)=>Math.hypot((a[0]-c[0])*meas.nw,(a[1]-c[1])*meas.nh);const p=meas.pts;const dh=d(p[0],p[1]),dw=d(p[2],p[3]);if(dh<4||dw<4)return null;
+  const mm=H*dw/dh;let std;if(meas.kind==='alu')std=Math.max(1,Math.round(mm/ALU_PITCH));else if(meas.kind==='towel')std=Math.max(300,Math.round(mm/50)*50);else std=mm>2000?Math.round(mm/200)*200:Math.max(400,Math.round(mm/100)*100);
+  return {H,mm:Math.round(mm),std}}
+function measResult(){if(!meas)return;const v=measValue(),out=$('#measOut'),use=$('#measUse'),ex=$('#measExact');
+  if(!v){out.textContent=num($('#measH').value)>0?'Τοποθετήστε τα σημεία στις άκρες του σώματος.':'Συμπληρώστε το ύψος του σώματος.';use.disabled=true;use.textContent='Χρήση';ex.hidden=true;return}
+  const f=n=>n.toLocaleString('el-GR');use.disabled=false;
+  if(meas.kind==='alu'){out.textContent='Πλάτος ≈ '+f(v.mm)+' mm ≈ '+v.std+' φέτες (βήμα '+ALU_PITCH+' mm)';use.textContent='Χρήση '+v.std+' φέτες';ex.hidden=true}
+  else{out.textContent=(meas.kind==='towel'?'Πλάτος':'Μήκος')+' ≈ '+f(v.mm)+' mm · τυποποιημένο '+f(v.std)+' mm';use.textContent='Χρήση '+f(v.std)+' mm';ex.hidden=v.mm===v.std;ex.textContent='Χρήση '+f(v.mm)+' mm'}}
+function applyMeasure(exact){const v=measValue();if(!v||!meas)return;const i=meas.i,val=exact&&meas.kind!=='alu'?v.mm:v.std;const rh=document.getElementById('rh'+i),rl=document.getElementById('rl'+i);
+  if(!rl){closeMeasure();return}if(rh&&!rh.value)rh.value=String(v.H);rl.value=String(val);rl.dispatchEvent(new Event('input',{bubbles:true}));
+  const keep=$('#measKeep').checked,file=meas.file,unit=meas.kind==='alu'?' φέτες':' mm',note='Σώμα '+(i+1)+' '+v.H+'×'+val+(meas.kind==='alu'?' φέτες':'');closeMeasure();
+  if(keep)addPhotos([file],note);else toast('Καταχωρήθηκε: '+val+unit)}
+function loupe(idx){const c=$('#measLoupe');if(!meas||!meas.nw){c.hidden=true;return}const p=meas.pts[idx];const g=c.getContext('2d');const src=Math.max(meas.nw,meas.nh)/9;const sx=p[0]*meas.nw-src/2,sy=p[1]*meas.nh-src/2;
+  g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);g.drawImage($('#measImg'),sx,sy,src,src,0,0,c.width,c.height);g.strokeStyle='#fff';g.lineWidth=2;g.beginPath();g.moveTo(c.width/2,c.height/2-26);g.lineTo(c.width/2,c.height/2+26);g.moveTo(c.width/2-26,c.height/2);g.lineTo(c.width/2+26,c.height/2);g.stroke();
+  g.strokeStyle=idx<2?'#2fbf71':'#ff9f1a';g.beginPath();g.arc(c.width/2,c.height/2,10,0,6.3);g.stroke();c.classList.toggle('right',p[0]<.5&&p[1]<.45);c.hidden=false}
+document.addEventListener('pointerdown',e=>{const h=e.target.closest&&e.target.closest('.mh');if(!h||!meas||!meas.box)return;e.preventDefault();const idx=+h.dataset.mh;h.classList.add('drag');try{h.setPointerCapture(e.pointerId)}catch(_){ }
+  const st=$('#measStage').getBoundingClientRect();
+  const move=ev=>{if(!meas)return;const b=meas.box;meas.pts[idx]=[Math.min(1,Math.max(0,(ev.clientX-st.left-b.x)/b.w)),Math.min(1,Math.max(0,(ev.clientY-st.top-b.y)/b.h))];drawMeasure();loupe(idx)};
+  const up=()=>{h.classList.remove('drag');h.removeEventListener('pointermove',move);h.removeEventListener('pointerup',up);h.removeEventListener('pointercancel',up);$('#measLoupe').hidden=true};
+  h.addEventListener('pointermove',move);h.addEventListener('pointerup',up);h.addEventListener('pointercancel',up);loupe(idx)});
+window.addEventListener('resize',()=>{if(meas)layoutMeasure()});
+
 /* ------------------------------------------------------------------ actions */
 function blank(){return {kind:'insp',client:'',address:'',date:today(),answers:{},rads:Array(RAD_N).fill(''),radQty:Array(RAD_N).fill(''),cond:{tin:75,tout:60,troom:20},fileId:null,fileName:'',updatedAt:'',prices:JSON.parse(JSON.stringify(PRICES)),cost:{},vat:false}}
 async function createNew(){cur={id:newId(),...blank()};curFile=null;dirty=true;await saveNow();openEdit()}
@@ -578,7 +646,7 @@ async function importFile(file){
 }
 function openEdit(){view='edit';section=0;confirmDel=false;render();window.scrollTo(0,0);loadPhotos()}
 async function openInsp(id){const x=list.find(i=>i.id===id);if(!x)return;cur=JSON.parse(JSON.stringify(x));cur.rads=Array.from({length:RAD_N},(_,i)=>(cur.rads||[])[i]||'');cur.radQty=Array.from({length:RAD_N},(_,i)=>(cur.radQty||[])[i]||'');if(!cur.cond)cur.cond={tin:75,tout:60,troom:20};if(!cur.prices||!cur.prices.length)cur.prices=JSON.parse(JSON.stringify(PRICES));if(!cur.cost)cur.cost={};curFile=null;openEdit()}
-async function backToList(){await saveNow();closeSheet();readyFile=null;view='list';cur=null;photos=[];setSave('');render();window.scrollTo(0,0)}
+async function backToList(){await saveNow();closeSheet();closeMeasure();readyFile=null;view='list';cur=null;photos=[];setSave('');render();window.scrollTo(0,0)}
 async function removeCur(){const c=cur;await saveNow();try{await delDoc(c.id);if(c.fileId)await delDoc(c.fileId)}catch(e){toast('Η διαγραφή απέτυχε.');return}
   try{await delPhotosOf(c.id)}catch(e){}photos=[];
   if(store.kind==='local')list=list.filter(i=>i.id!==c.id);view='list';cur=null;setSave('');render();toast('Η αυτοψία διαγράφηκε.')}
@@ -643,7 +711,8 @@ function radHtml(){
      +'<label class="fld fq"><span>Τεμ.</span><input id="rq'+i+'" data-radq="'+i+'" value="'+esc((cur.radQty||[])[i]||'')+'" inputmode="numeric" placeholder="1"></label>'
      +'<label class="fld fh"><span>Ύψος mm</span><input id="rh'+i+'" data-rad="'+i+'" data-part="1" value="'+esc(h)+'" inputmode="numeric" list="dl-h-'+(k||'panel')+'"></label>'
      +'<label class="fld fl"><span id="rlc'+i+'">'+ph+(k==='alu'?'':' mm')+'</span><input id="rl'+i+'" data-rad="'+i+'" data-part="2" value="'+esc(l)+'" inputmode="numeric" list="dl-l-'+(k||'panel')+'" ></label>'
-+'<span class="w" id="rw'+i+'">'+(r?(w!=null?w.toLocaleString('el-GR'):'—'):'')+'</span></div>'}).join('');
++'<span class="w" id="rw'+i+'">'+(r?(w!=null?w.toLocaleString('el-GR'):'—'):'')+'</span>'
+     +'<label class="btn filebtn fm"><span id="rmc'+i+'">'+measLabel(k)+'</span><input type="file" accept="image/*" data-measin="'+i+'"></label></div>'}).join('');
   return '<div class="cond"><span>Συνθήκες</span><label>Προσαγωγή<input id="ct" data-cond="tin" value="'+c.tin+'" inputmode="numeric"></label><label>Επιστροφή<input id="co" data-cond="tout" value="'+c.tout+'" inputmode="numeric"></label><label>Χώρος<input id="cr" data-cond="troom" value="'+c.troom+'" inputmode="numeric"></label><span>°C</span></div>'
    +'<div class="rad-head"><span>#</span><span>Τύπος</span><span>Ύψος</span><span>Μήκος</span><span>Τεμ.</span><span class="r">W</span></div><div class="rads">'+rows+'</div>'
    +'<div class="radtot"><span>Σύνολο απόδοσης '+c.tin+'/'+c.tout+' °C</span><b id="radTot">'+radTotal(cur).toLocaleString('el-GR')+' W</b></div>'
@@ -684,6 +753,9 @@ document.addEventListener('click',e=>{
   if(e.target.id==='sheet'){readyFile=null;return closeSheet()}
   if(e.target.id==='viewer')return closePhoto();
   const t=e.target.closest('button,[data-open]');if(!t)return;
+  if(t.id==='measClose')return closeMeasure();
+  if(t.id==='measUse')return applyMeasure(false);
+  if(t.id==='measExact')return applyMeasure(true);
   if(t.id==='phClose')return closePhoto();
   if(t.id==='sendBtn'){readyFile=null;return openSheet()}
   if(t.id==='sendBtn2'){readyFile=null;openSheet();return sendFolder()}
@@ -716,6 +788,7 @@ document.addEventListener('click',e=>{
 function radChanged(){(cur.rads||[]).forEach((r,i)=>{const el=document.getElementById('rw'+i);if(el){const w=r?radW(cur,i):null;el.textContent=r?(w!=null?w.toLocaleString('el-GR'):'—'):''}});
   const t=document.getElementById('radTot');if(t)t.textContent=radTotal(cur).toLocaleString('el-GR')+' W';saveSoon();refreshCard(RAD_SEQ)}
 document.addEventListener('input',e=>{const t=e.target;if(t.id==='searchIn'){listFilter=t.value;return applyFilter()}
+  if(t.id==='measH')return measResult();
   if(!cur&&view!=='prices')return;
   if(view==='prices'){
     if(t.id==='vatIn'){VAT=num(t.value)||0}
@@ -728,7 +801,7 @@ document.addEventListener('input',e=>{const t=e.target;if(t.id==='searchIn'){lis
   if(t.dataset.meta){cur[t.dataset.meta]=t.value;if(t.dataset.meta==='client')$('#topTitle').textContent=t.value||'Νέα αυτοψία';return saveSoon()}
   if(t.dataset.ans){const s=+t.dataset.ans;setAns(s,t.value);costChanged();const card=document.getElementById('card'+s);if(card)card.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===t.value)));return refreshCard(s)}
   if(t.dataset.rad!==undefined){const i=+t.dataset.rad;const parts=['rt','rh','rl'].map(p=>(document.getElementById(p+i)||{}).value||'');cur.rads[i]=parts.some(Boolean)?parts.join('/'):'';
-    if(t.dataset.part==='0'){const k=kindOf(t.value)||'panel';const h=document.getElementById('rh'+i),l=document.getElementById('rl'+i);h.setAttribute('list','dl-h-'+k);l.setAttribute('list','dl-l-'+k);const cap=document.getElementById('rlc'+i);if(cap)cap.textContent=k==='towel'?'Πλάτος mm':k==='alu'?'Φέτες':'Μήκος mm'}
+    if(t.dataset.part==='0'){const k=kindOf(t.value)||'panel';const h=document.getElementById('rh'+i),l=document.getElementById('rl'+i);h.setAttribute('list','dl-h-'+k);l.setAttribute('list','dl-l-'+k);const cap=document.getElementById('rlc'+i);if(cap)cap.textContent=k==='towel'?'Πλάτος mm':k==='alu'?'Φέτες':'Μήκος mm';const mc=document.getElementById('rmc'+i);if(mc)mc.textContent=measLabel(k)}
     radChanged()}
   if(t.dataset.radq!==undefined){cur.radQty[+t.dataset.radq]=t.value.replace(/\D/g,'');radChanged()}
   if(t.dataset.cond){cur.cond=cur.cond||{};cur.cond[t.dataset.cond]=t.value;const c=cond(cur);const lab=document.querySelector('.radtot span');if(lab)lab.textContent='Σύνολο απόδοσης '+c.tin+'/'+c.tout+' °C';radChanged()}
@@ -736,6 +809,7 @@ document.addEventListener('input',e=>{const t=e.target;if(t.id==='searchIn'){lis
 document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='fileIn'&&t.files&&t.files[0]){importFile(t.files[0]);t.value=''}
   else if(t.id==='restoreIn'&&t.files&&t.files[0]){restoreAll(t.files[0]);t.value=''}
+  else if(t.dataset&&t.dataset.measin!==undefined&&t.files&&t.files[0]){const f=t.files[0];const i=+t.dataset.measin;t.value='';openMeasure(i,f)}
   else if((t.id==='photoCam'||t.id==='photoLib')&&t.files&&t.files.length){const fs=Array.from(t.files);t.value='';addPhotos(fs)}
   else if(t.dataset&&t.dataset.con!==undefined){const id=t.dataset.con;const l=costLines(cur).find(x=>x.id===id);const o={...(cur.cost[id]||{}),on:t.checked};if(t.checked&&!l.qtxt&&!l.isAuto)o.qty='1';cur.cost[id]=o;saveSoon();rerenderKeepScroll()}
   else if(t.id==='vatCk'){cur.vat=t.checked;saveSoon();rerenderKeepScroll()}
