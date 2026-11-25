@@ -48,6 +48,9 @@ main{padding-block:16px 120px}
 .hint{color:var(--muted);font-size:13px;line-height:1.45}
 .banner{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.4}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.inspw{position:relative}
+.inspw .x{position:absolute;right:8px;bottom:8px;border:1px solid var(--line);background:var(--card);border-radius:8px;width:34px;height:34px;padding:0;color:var(--no);font-size:15px;line-height:1}
+.inspw .insp{padding-right:52px}
 .insp{display:flex;flex-direction:column;gap:4px;text-align:left;width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px}
 .insp b{font-size:16px}
 .insp .meta{display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:13px}
@@ -371,7 +374,7 @@ async function loadPrices(){try{const d=await getDoc('prices');if(d&&Array.isArr
 async function savePrices(){try{await putDoc('prices',{kind:'prices',items:PRICES,vat:VAT,updatedAt:new Date().toISOString()});setSave('Αποθηκεύτηκε')}catch(e){toast('Ο τιμοκατάλογος δεν αποθηκεύτηκε.')}}
 
 /* ------------------------------------------------------------------ state */
-let backSec=null, importOpen=false, apptDraft='';
+let listDel=null, backSec=null, importOpen=false, apptDraft='';
 let store=null, uid=null, list=[], cur=null, curFile=null, view='list', section=0, saving=Promise.resolve(), dirty=false, timer=null, confirmDel=false, banner='', photos=[], listFilter='', readyFile=null;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -698,6 +701,10 @@ async function backToList(){await saveNow();closeSheet();closeMeasure();readyFil
 async function removeCur(){const c=cur;await saveNow();try{await delDoc(c.id);if(c.fileId)await delDoc(c.fileId)}catch(e){toast('Η διαγραφή απέτυχε.');return}
   try{await delPhotosOf(c.id)}catch(e){}photos=[];
   if(store.kind==='local')list=list.filter(i=>i.id!==c.id);view='list';cur=null;setSave('');render();toast('Η αυτοψία διαγράφηκε.')}
+async function removeById(id){const x=list.find(i=>i.id===id);listDel=null;if(!x)return rerenderKeepScroll();
+  try{await delDoc(id);if(x.fileId)await delDoc(x.fileId)}catch(e){toast('Η διαγραφή απέτυχε.');return}
+  try{await delPhotosOf(id)}catch(e){}
+  list=list.filter(i=>i.id!==id);rerenderKeepScroll();toast('Η αυτοψία διαγράφηκε.')}
 function setAns(seq,v){if(v===''||v==null)delete cur.answers[seq];else cur.answers[seq]=v;saveSoon()}
 
 /* ------------------------------------------------------------------ rendering */
@@ -717,13 +724,14 @@ function listHtml(){
   const search=list.length>3?'<input class="search" id="searchIn" type="search" value="'+esc(listFilter)+'" placeholder="Αναζήτηση πελάτη, διεύθυνσης ή περιοχής" aria-label="Αναζήτηση αυτοψίας" autocomplete="off">':'';
   const cards=list.map(i=>{const [n,t]=progress(i);const pc=Math.round(100*n/Math.max(t,1));const key=((i.client||'')+' '+(i.address||'')+' '+(i.area||'')).toLowerCase();
     const tags=(i.fileId?'<span class="tag">DYNAMICS</span>':'')+(i.photoN?'<span class="tag plain">'+i.photoN+' φωτ.</span>':'');
-    return '<button class="insp" data-open="'+esc(i.id)+'" data-key="'+esc(key)+'"'+(matches(key)?'':' hidden')+'><div class="head"><b>'+esc(i.client||'Χωρίς όνομα')+'</b><span class="pct'+(pc===100?' full':'')+'">'+(pc===100?'✓ Πλήρης':pc+'%')+'</span></div>'
-    +'<div class="meta"><span>'+esc(i.address||'—')+'</span>'+(areaShown(i)?'<span>'+esc(areaShown(i))+'</span>':'')+'<span>'+esc(fmtDate(i.date))+(i.time?' '+esc(i.time):'')+'</span>'+(i.wo?'<span>'+esc(i.wo)+'</span>':'')+'</div>'+(tags?'<div class="tags">'+tags+'</div>':'')+'<div class="bar"><i style="width:'+pc+'%"></i></div></button>'}).join('');
+    if(listDel===i.id)return '<div class="inspw confirm" data-key="'+esc(key)+'"><b>Διαγραφή της αυτοψίας «'+esc(i.client||'Χωρίς όνομα')+'»;</b><span class="hint">Διαγράφονται και οι φωτογραφίες της. Δεν αναιρείται.</span><div class="row"><button class="btn danger" data-ldelyes="'+esc(i.id)+'">Διαγραφή</button><button class="btn" id="ldelNo">Άκυρο</button></div></div>';
+    return '<div class="inspw" data-key="'+esc(key)+'"'+(matches(key)?'':' hidden')+'><button class="insp" data-open="'+esc(i.id)+'"><div class="head"><b>'+esc(i.client||'Χωρίς όνομα')+'</b><span class="pct'+(pc===100?' full':'')+'">'+(pc===100?'✓ Πλήρης':pc+'%')+'</span></div>'
+    +'<div class="meta"><span>'+esc(i.address||'—')+'</span>'+(areaShown(i)?'<span>'+esc(areaShown(i))+'</span>':'')+'<span>'+esc(fmtDate(i.date))+(i.time?' '+esc(i.time):'')+'</span>'+(i.wo?'<span>'+esc(i.wo)+'</span>':'')+'</div>'+(tags?'<div class="tags">'+tags+'</div>':'')+'<div class="bar"><i style="width:'+pc+'%"></i></div></button><button class="x" data-ldel="'+esc(i.id)+'" aria-label="Διαγραφή αυτοψίας '+esc(i.client||'')+'">✕</button></div>'}).join('');
   return '<div class="stack">'+b+actions+search+'<p class="sum"><span id="listCount">'+countText()+'</span></p>'+cards+help+backup+'</div>';
 }
 const matches=key=>!listFilter||key.includes(listFilter.toLowerCase().trim());
 function countText(){const n=list.filter(i=>matches(((i.client||'')+' '+(i.address||'')+' '+(i.area||'')).toLowerCase())).length;return listFilter?n+' από '+list.length+' αυτοψίες':list.length+' αυτοψί'+(list.length===1?'α':'ες')}
-function applyFilter(){document.querySelectorAll('.insp[data-key]').forEach(el=>{el.hidden=!matches(el.dataset.key)});const c=document.getElementById('listCount');if(c)c.textContent=countText()}
+function applyFilter(){document.querySelectorAll('.inspw[data-key]').forEach(el=>{el.hidden=!matches(el.dataset.key)});const c=document.getElementById('listCount');if(c)c.textContent=countText()}
 function secCount(k){if(k===COST_SEC||k===PHOTO_SEC)return [0,0];const [,a,b]=SECTIONS[k];const qs=Q.filter(q=>q.seq>=a&&q.seq<=b&&visible(q));return [qs.filter(answered).length,qs.length]}
 function editHtml(){
   const head=section===0?'<div class="card stack"><label class="f" for="cl">Πελάτης<input id="cl" data-meta="client" value="'+esc(cur.client)+'" placeholder="Ονοματεπώνυμο πελάτη" autocomplete="off"></label>'
@@ -740,7 +748,7 @@ function editHtml(){
   const prev=section>0?'<button class="btn" data-sec="'+(section-1)+'">‹ '+SECTIONS[section-1][0]+'</button>':'';
   const next=section<SECTIONS.length-1?'<button class="btn primary" data-sec="'+(section+1)+'">'+SECTIONS[section+1][0]+' ›</button>':'';
   const del=confirmDel?'<div class="confirm"><b>Διαγραφή αυτής της αυτοψίας;</b><span class="hint">Διαγράφονται και οι φωτογραφίες της. Δεν αναιρείται.</span><div class="row"><button class="btn danger" id="delYes">Διαγραφή</button><button class="btn" id="delNo">Άκυρο</button></div></div>':'<button class="btn danger" id="delAsk">Διαγραφή αυτοψίας</button>';
-  return '<div class="stack">'+tabs+head+qs+'<div class="nav">'+prev+next+'</div>'+(section===SECTIONS.length-1?del:'')+'</div>';
+  return '<div class="stack">'+tabs+head+(section===0?del:'')+qs+'<div class="nav">'+prev+next+'</div>'+(section===SECTIONS.length-1?del:'')+'</div>';
 }
 function qHtml(q){
   const v=String(cur.answers[q.seq]??'');const done=answered(q);
@@ -830,6 +838,9 @@ document.addEventListener('click',e=>{
   if(t.id==='delNo'){confirmDel=false;return rerenderKeepScroll()}
   if(t.id==='delYes')return removeCur();
   if(t.dataset.open)return openInsp(t.dataset.open);
+  if(t.dataset.ldel){listDel=t.dataset.ldel;return rerenderKeepScroll()}
+  if(t.id==='ldelNo'){listDel=null;return rerenderKeepScroll()}
+  if(t.dataset.ldelyes)return removeById(t.dataset.ldelyes);
   if(t.id==='photoGo'){if(section!==PHOTO_SEC){backSec=section;section=PHOTO_SEC;confirmDel=false;render();window.scrollTo(0,0)}return}
   if(t.id==='photoBack'){section=backSec;backSec=null;render();window.scrollTo(0,0);return}
   if(t.id==='importBtn'){importOpen=!importOpen;render();const ta=$('#apptTxt');if(ta)ta.focus();return}
