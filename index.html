@@ -692,7 +692,7 @@ async function importFile(file){
   }catch(e){toast(e.message||'Το αρχείο δεν διαβάστηκε.')}
 }
 function openEdit(){view='edit';section=0;backSec=null;confirmDel=false;render();window.scrollTo(0,0);loadPhotos()}
-async function openInsp(id){const x=list.find(i=>i.id===id);if(!x)return;cur=JSON.parse(JSON.stringify(x));cur.rads=Array.from({length:RAD_N},(_,i)=>(cur.rads||[])[i]||'');cur.radQty=Array.from({length:RAD_N},(_,i)=>(cur.radQty||[])[i]||'');if(!cur.cond)cur.cond={tin:75,tout:60,troom:20};if(!cur.prices||!cur.prices.length)cur.prices=JSON.parse(JSON.stringify(PRICES));if(!cur.cost)cur.cost={};curFile=null;openEdit()}
+async function openInsp(id){const x=list.find(i=>i.id===id);if(!x)return;cur=JSON.parse(JSON.stringify(x));cur.rads=Array.from({length:RAD_N},(_,i)=>(cur.rads||[])[i]||'');cur.radQty=Array.from({length:RAD_N},(_,i)=>(cur.radQty||[])[i]||'');if(!cur.cond)cur.cond={tin:75,tout:60,troom:20};if(cur.area&&!areaShown(cur)){const p=String(cur.address).split(',');const a=stripAcc(cur.area.toLowerCase());let last=p.pop();const k=stripAcc(last.toLowerCase());const at=k.lastIndexOf(a);if(at>=0)last=last.slice(0,at);p.push(last);cur.address=p.map(x=>x.trim()).filter(Boolean).join(', ');dirty=true;setTimeout(saveNow,0)}if(!cur.prices||!cur.prices.length)cur.prices=JSON.parse(JSON.stringify(PRICES));if(!cur.cost)cur.cost={};curFile=null;openEdit()}
 async function backToList(){await saveNow();closeSheet();closeMeasure();readyFile=null;view='list';cur=null;photos=[];setSave('');render();window.scrollTo(0,0)}
 async function removeCur(){const c=cur;await saveNow();try{await delDoc(c.id);if(c.fileId)await delDoc(c.fileId)}catch(e){toast('Η διαγραφή απέτυχε.');return}
   try{await delPhotosOf(c.id)}catch(e){}photos=[];
