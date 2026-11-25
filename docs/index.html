@@ -484,7 +484,7 @@ async function importAppts(txt){const items=parseAppts(txt);if(!items.length){to
   for(const x of items){x.client=niceText(x.client);x.address=niceText(x.address||'');
     const dup=list.find(i=>x.wo?i.wo===x.wo:(niceText(i.client)===x.client&&i.date===x.date));if(dup){skip++;continue}
     const d={...blank(),client:x.client,address:x.address,phone:x.phone||'',time:x.time||'',wo:x.wo||'',account:x.account||'',date:x.date||today(),updatedAt:new Date().toISOString()};
-    d.area=areaOf({address:d.address});
+    d.area=areaOf({address:d.address});if(d.area){const p=d.address.split(',');p[p.length-1]=p[p.length-1].replace(d.area,'').trim();d.address=p.map(x=>x.trim()).filter(Boolean).join(', ')}
     try{await putDoc(newId(),d);made++;reloadList()}catch(e){toast('Η δημιουργία απέτυχε: '+(e.message||'σφάλμα'));break}}
   reloadList();if(made){importOpen=false;apptDraft=''}render();
   toast((made?(made===1?'1 νέα αυτοψία':made+' νέες αυτοψίες'):'Καμία νέα αυτοψία')+(skip?' · '+skip+' υπήρχαν ήδη':''))}
@@ -600,6 +600,7 @@ async function exportXlsx(){
 }
 /* one ZIP per inspection: a folder named after the client with the Excel, the cost sheet and the photos */
 /* area: its own field; older inspections fall back to the part of the address after the last comma */
+const areaShown=i=>{const a=String(i.area||'').trim();if(!a)return '';const n=x=>stripAcc(String(x).toLowerCase()).replace(/\s+/g,' ').trim();return n(i.address||'').endsWith(n(a))?'':a};
 const areaOf=i=>{const a=String(i.area||'').trim();if(a)return a;const p=String(i.address||'').split(',');return p.length>1?p[p.length-1].replace(/\d{3}\s?\d{2}/,'').trim():''};
 const dotDate=d=>{const p=String(d||today()).split('-');return p.length===3?p[2]+'.'+p[1]+'.'+p[0]:String(d)};
 const folderName=()=>{const a=safeName(areaOf(cur)).slice(0,30);return (safeName(cur.client).slice(0,50)||'Αυτοψία')+(a?'_'+a:'')+'_'+dotDate(cur.date)};
@@ -716,7 +717,7 @@ function listHtml(){
   const cards=list.map(i=>{const [n,t]=progress(i);const pc=Math.round(100*n/Math.max(t,1));const key=((i.client||'')+' '+(i.address||'')+' '+(i.area||'')).toLowerCase();
     const tags=(i.fileId?'<span class="tag">DYNAMICS</span>':'')+(i.photoN?'<span class="tag plain">'+i.photoN+' φωτ.</span>':'');
     return '<button class="insp" data-open="'+esc(i.id)+'" data-key="'+esc(key)+'"'+(matches(key)?'':' hidden')+'><div class="head"><b>'+esc(i.client||'Χωρίς όνομα')+'</b><span class="pct'+(pc===100?' full':'')+'">'+(pc===100?'✓ Πλήρης':pc+'%')+'</span></div>'
-    +'<div class="meta"><span>'+esc(i.address||'—')+'</span>'+(i.area?'<span>'+esc(i.area)+'</span>':'')+'<span>'+esc(fmtDate(i.date))+(i.time?' '+esc(i.time):'')+'</span>'+(i.wo?'<span>'+esc(i.wo)+'</span>':'')+'</div>'+(tags?'<div class="tags">'+tags+'</div>':'')+'<div class="bar"><i style="width:'+pc+'%"></i></div></button>'}).join('');
+    +'<div class="meta"><span>'+esc(i.address||'—')+'</span>'+(areaShown(i)?'<span>'+esc(areaShown(i))+'</span>':'')+'<span>'+esc(fmtDate(i.date))+(i.time?' '+esc(i.time):'')+'</span>'+(i.wo?'<span>'+esc(i.wo)+'</span>':'')+'</div>'+(tags?'<div class="tags">'+tags+'</div>':'')+'<div class="bar"><i style="width:'+pc+'%"></i></div></button>'}).join('');
   return '<div class="stack">'+b+actions+search+'<p class="sum"><span id="listCount">'+countText()+'</span></p>'+cards+help+backup+'</div>';
 }
 const matches=key=>!listFilter||key.includes(listFilter.toLowerCase().trim());
@@ -731,7 +732,7 @@ function editHtml(){
    +((cur.wo||cur.time)?'<p class="hint">'+[cur.time?'Ραντεβού '+cur.time:'',cur.wo?cur.wo+(cur.account?' ('+cur.account+')':''):''].filter(Boolean).map(esc).join(' · ')+'</p>':'')
    +'<label class="f" for="dt">Ημερομηνία αυτοψίας<input id="dt" type="date" data-meta="date" value="'+esc(cur.date)+'"></label>'
    +(cur.fileName?'<p class="hint">Αρχείο Dynamics: '+esc(cur.fileName)+'</p>':'')+'</div>'
-   :'<p class="sum"><span>'+esc(cur.address||'Χωρίς διεύθυνση')+'</span>'+(cur.area?'<span>'+esc(cur.area)+'</span>':'')+'<span>'+esc(fmtDate(cur.date))+'</span></p>';
+   :'<p class="sum"><span>'+esc(cur.address||'Χωρίς διεύθυνση')+'</span>'+(areaShown(cur)?'<span>'+esc(areaShown(cur))+'</span>':'')+'<span>'+esc(fmtDate(cur.date))+'</span></p>';
   const tabs='<div class="tabs" role="tablist">'+SECTIONS.map((s,k)=>{const [n,t]=secCount(k);const full=t>0&&n===t;return '<button class="tab'+(full?' full':'')+'" role="tab" data-sec="'+k+'" aria-selected="'+(k===section)+'">'+s[0]+'<small id="tabc'+k+'">'+(k===COST_SEC?eur(costTotal(cur).gross):k===PHOTO_SEC?photos.length:full?'✓':n+'/'+t)+'</small></button>'}).join('')+'</div>';
   const [,a,b]=SECTIONS[section];
   const qs=section===COST_SEC?costHtml():section===PHOTO_SEC?photoHtml():Q.filter(q=>q.seq>=a&&q.seq<=b&&visible(q)).map(qHtml).join('');
