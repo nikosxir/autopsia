@@ -86,6 +86,8 @@ textarea{min-height:72px;resize:vertical}
 .bottom{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
 .bottom .wrap{display:flex;gap:10px;align-items:center;padding-block:10px}
 .bottom .grow{flex:1;min-width:0;font-size:12px;color:var(--muted)}
+.bottom .camq{padding:10px 11px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bottom .wrap{gap:8px}
 .confirm{border:1px solid var(--no);background:var(--no-soft);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:14px;z-index:9;max-width:90vw}
 .filebtn{position:relative;overflow:hidden}
@@ -179,6 +181,8 @@ details summary::after{content:' ▾';color:var(--muted)}
 <main class="wrap" id="app"></main>
 <div class="bottom" id="bottomBar" hidden><div class="prog"><i id="bottomProg" style="width:0"></i></div><div class="wrap">
   <div class="grow" id="bottomInfo"></div>
+  <label class="btn filebtn camq" aria-label="Λήψη φωτογραφίας">📷<input type="file" id="photoQuick" accept="image/*" capture="environment"></label>
+  <button class="btn camq" id="photoGo" aria-label="Φωτογραφίες αυτοψίας">🖼 <b id="photoCnt">0</b></button>
   <button class="btn primary" id="sendBtn">Αποστολή</button>
 </div></div>
 <div class="meas" id="meas" hidden role="dialog" aria-label="Μέτρηση σώματος από φωτογραφία">
@@ -366,6 +370,7 @@ async function loadPrices(){try{const d=await getDoc('prices');if(d&&Array.isArr
 async function savePrices(){try{await putDoc('prices',{kind:'prices',items:PRICES,vat:VAT,updatedAt:new Date().toISOString()});setSave('Αποθηκεύτηκε')}catch(e){toast('Ο τιμοκατάλογος δεν αποθηκεύτηκε.')}}
 
 /* ------------------------------------------------------------------ state */
+let backSec=null, importOpen=false, apptDraft='';
 let store=null, uid=null, list=[], cur=null, curFile=null, view='list', section=0, saving=Promise.resolve(), dirty=false, timer=null, confirmDel=false, banner='', photos=[], listFilter='', readyFile=null;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -444,11 +449,49 @@ function photoHtml(){
   const add='<div class="card stack"><b>Φωτογραφίες αυτοψίας</b><div class="row"><label class="btn primary filebtn">Λήψη φωτογραφίας<input type="file" id="photoCam" accept="image/*" capture="environment"></label>'
    +'<label class="btn filebtn">Από τη συλλογή<input type="file" id="photoLib" accept="image/*" multiple></label></div>'
    +'<p class="hint">Οι φωτογραφίες μικραίνουν αυτόματα (έως 1600 px) και αποθηκεύονται σε αυτό το κινητό μαζί με την αυτοψία. Δεν περιλαμβάνονται στο «Αντίγραφο όλων»· φεύγουν μαζί με το Excel από την «Αποστολή».</p></div>';
-  if(!photos.length)return add+'<div class="card empty"><p class="hint">Δεν υπάρχουν φωτογραφίες σε αυτή την αυτοψία.</p></div>';
+  const back=(backSec!=null&&backSec!==PHOTO_SEC)?'<button class="btn" id="photoBack">‹ Επιστροφή στο «'+SECTIONS[backSec][0]+'»</button>':'';
+  if(!photos.length)return back+add+'<div class="card empty"><p class="hint">Δεν υπάρχουν φωτογραφίες σε αυτή την αυτοψία.</p></div>';
   const grid='<div class="phgrid">'+photos.map((ph,i)=>'<figure class="ph"><button class="phimg" data-phview="'+i+'" aria-label="Προβολή φωτογραφίας '+(i+1)+'"><img src="'+ph.thumb+'" alt="'+esc(ph.note||'Φωτογραφία '+(i+1))+'" loading="lazy"></button>'
    +'<input data-phnote="'+esc(ph.id)+'" value="'+esc(ph.note||'')+'" placeholder="Περιγραφή" aria-label="Περιγραφή φωτογραφίας '+(i+1)+'" autocomplete="off"><button class="btn danger" data-phdel="'+esc(ph.id)+'">Διαγραφή</button></figure>').join('')+'</div>';
   const send='<button class="btn primary" id="sendBtn2">Αποστολή φακέλου ZIP</button>';
-  return add+grid+send}
+  return back+add+grid+send}
+
+
+/* ------------------------------------------------------------------ appointments: paste the «ΡΑΝΤΕΒΟΥ …» Viber message, one inspection per appointment */
+/* ALL-CAPS Greek from the portal -> «Χρήστος Αλεξίου»: known words take their accent from the list, common surname endings by rule; unknown words stay unaccented */
+const ACC_LIST='Γιώργος Γεώργιος Γιάννης Ιωάννης Ιωάννου Νίκος Νικόλαος Δημήτρης Δημήτριος Κώστας Κωνσταντίνος Κωνσταντίνου Χρήστος Χρήστου Παναγιώτης Βασίλης Βασίλειος Αθανάσιος Θανάσης Μιχάλης Μιχαήλ Ευάγγελος Βαγγέλης Σπύρος Σπυρίδων Αντώνης Αντώνιος Αλέξανδρος Αλεξάνδρου Αλέξης Θεόδωρος Θεοδώρου Θοδωρής Στέλιος Στυλιανός Ηλίας Άγγελος Ανδρέας Ανδρέα Παύλος Παύλου Πέτρος Πέτρου Στάθης Ευστάθιος Σωτήρης Σωτήριος Τάσος Αναστάσιος Μανώλης Εμμανουήλ Λευτέρης Ελευθέριος Θωμάς Φώτης Φώτιος Χαράλαμπος Μπάμπης Απόστολος Γρηγόρης Γρηγόριος Στέφανος Λάμπρος Ζήσης Σταύρος Κυριάκος Παντελής Νεκτάριος Χρυσόστομος Ιάκωβος Φίλιππος Μάρκος Λουκάς Ορέστης Άρης Μάριος Πρόδρομος Γεράσιμος Διονύσιος Διονύσης Ευθύμιος Ζαχαρίας Σάββας Ηρακλής Αχιλλέας Οδυσσέας Περικλής Μαρία Ελένη Αικατερίνη Κατερίνα Βασιλική Σοφία Αγγελική Ευαγγελία Γεωργία Δήμητρα Ειρήνη Ειρήνης Αναστασία Χριστίνα Παναγιώτα Κωνσταντίνα Ιωάννα Αθανασία Νίκη Δέσποινα Θεοδώρα Φωτεινή Χρυσούλα Ευτυχία Αλεξάνδρα Αλεξάνδρας Μαρίνα Σταυρούλα Κυριακή Παρασκευή Ελευθερία Ελευθερίας Στυλιανή Αρετή Ζωή Άννα Ευγενία Όλγα Μαργαρίτα Αφροδίτη Αργυρώ Ελπίδα Λαμπρινή Ευθυμία Σταματία Πηνελόπη Ιουλία Αντωνία Λεωφόρος Οδός Πλατεία Αγίου Αγίας Αγίων Άγιος Αγία Άγιοι Νέα Νέος Νέο Παλαιό Βασιλέως Βασιλίσσης Βενιζέλου Παπανδρέου Κολοκοτρώνη Καραϊσκάκη Μιαούλη Κανάρη Μπουμπουλίνας Μπότσαρη Ράλλη Γούναρη Τσαμαδού Ερμού Αθηνάς Πατησίων Κηφισίας Συγγρού Ποσειδώνος Θησέως Ηρώων Πολυτεχνείου Δημοκρατίας Ανεξαρτησίας Μακεδονίας Κρήτης Ηπείρου Θεσσαλονίκης Αθηνών Πειραιώς Πειραιάς Αθήνα Νίκαια Κερατσίνι Περιστέρι Καλλιθέα Γλυφάδα Χαλάνδρι Μαρούσι Κηφισιά Αιγάλεω Ηλιούπολη Βύρωνας Ζωγράφου Γαλάτσι Παγκράτι Κορυδαλλός Δραπετσώνα Πέραμα Σαλαμίνα Ψυχικό Χολαργός Φάληρο Μοσχάτο Ταύρος Βούλα Βάρη Ελευσίνα Μέγαρα Ασπρόπυργος Λιόσια Καματερό Πετρούπολη Χαϊδάρι Αργυρούπολη Άλιμος Θεσσαλονίκη Καλαμαριά Πυλαία Εύοσμος Σταυρούπολη Νεάπολη Πολίχνη Θέρμη Πάτρα Λάρισα Βόλος Ηράκλειο Μενίδι Αχαρνές Αμπελόκηποι Ηλιούπολης Κάτω Άνω Μεγάλου Μεγάλης';
+const stripAcc=x=>x.normalize('NFD').replace(/[̀-ͯ]/g,'').normalize('NFC');
+const ACC_W={};ACC_LIST.split(' ').forEach(w=>{const l=w.toLowerCase();ACC_W[stripAcc(l)]=l});
+const SUFX=[['οπουλος','όπουλος'],['οπουλου','οπούλου'],['ογιαννης','ογιάννης'],['ογιαννη','ογιάννη'],['ιωτης','ιώτης'],['ιωτη','ιώτη'],['ουδης','ούδης'],['ουλης','ούλης'],['ουλη','ούλη'],['ιδης','ίδης'],['αδης','άδης'],['ακης','άκης'],['ιτης','ίτης'],['ιδου','ίδου'],['αδου','άδου'],['ακος','άκος'],['ατος','άτος'],['αιος','αίος'],['ειου','είου'],['αιου','αίου'],['ιδη','ίδη'],['αδη','άδη'],['ακη','άκη'],['ιτη','ίτη'],['ιου','ίου'],['αου','άου'],['ιας','ίας']];
+function niceWord(w){if(/\d/.test(w)||w!==w.toUpperCase()||!/[Α-ΩΆ-Ώ]/.test(w))return w;
+  return w.replace(/[Α-ΩΆ-ΏΪΫα-ωά-ώϊϋΐΰ]+/g,core=>{let l=core.toLowerCase();const k=stripAcc(l);
+    if(ACC_W[k])l=ACC_W[k];else if(l===k){for(const [a,b] of SUFX){if(k.length>a.length+1&&k.endsWith(a)){l=k.slice(0,-a.length)+b;break}}}
+    l=l.replace(/σ$/,'ς');return l.charAt(0).toUpperCase()+l.slice(1)})}
+const niceText=x=>String(x||'').split(/(\s+)/).map(niceWord).join('');
+function parseAppts(txt){const out=[];let date=null,a=null;const push=()=>{if(a&&a.client)out.push(a);a=null};
+  for(const raw of String(txt||'').split(/\r?\n/)){const l=raw.trim();if(!l)continue;let m;
+    if(m=l.match(/^ΡΑΝΤΕΒΟ[ΥΎ].*?(\d{1,2})\/(\d{1,2})\/(\d{4})/i)){push();date=m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');continue}
+    if(m=l.match(/^(\d{1,2}[:.]\d{2})\s*[-–]\s*(.+)$/)){push();a={time:m[1].replace('.',':').padStart(5,'0'),client:m[2].trim(),date};continue}
+    if(/^\(στοιχεία portal/i.test(l)){push();continue}
+    if(!a){if(m=l.match(/^[-–•]\s*(.+)$/))a={time:'',client:m[1].trim(),date};continue}
+    if(m=l.match(/^Τηλ\.?\s*:\s*(.+)$/i)){a.phone=m[1].trim();continue}
+    if(m=l.match(/^Δ\/νση\s*:\s*(.+)$/i)){a.address=m[1].trim();continue}
+    if(m=l.match(/\b(WO\d+)\b(?:\s*\(([^)]+)\))?/i)){a.wo=m[1].toUpperCase();if(m[2])a.account=m[2].trim();continue}}
+  push();return out}
+function reloadList(){list=Object.values(lsAll()).filter(x=>x.kind==='insp').sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''))}
+async function importAppts(txt){const items=parseAppts(txt);if(!items.length){toast('Δεν βρέθηκαν ραντεβού στο κείμενο.');return}
+  let made=0,skip=0;
+  for(const x of items){x.client=niceText(x.client);x.address=niceText(x.address||'');
+    const dup=list.find(i=>x.wo?i.wo===x.wo:(niceText(i.client)===x.client&&i.date===x.date));if(dup){skip++;continue}
+    const d={...blank(),client:x.client,address:x.address,phone:x.phone||'',time:x.time||'',wo:x.wo||'',account:x.account||'',date:x.date||today(),updatedAt:new Date().toISOString()};
+    d.area=areaOf({address:d.address});
+    try{await putDoc(newId(),d);made++;reloadList()}catch(e){toast('Η δημιουργία απέτυχε: '+(e.message||'σφάλμα'));break}}
+  reloadList();if(made){importOpen=false;apptDraft=''}render();
+  toast((made?(made===1?'1 νέα αυτοψία':made+' νέες αυτοψίες'):'Καμία νέα αυτοψία')+(skip?' · '+skip+' υπήρχαν ήδη':''))}
+function importHtml(){if(!importOpen)return '';
+  return '<div class="card stack"><b>Εισαγωγή ραντεβού</b><p class="hint">Αντιγράψτε από το Viber το μήνυμα «ΡΑΝΤΕΒΟΥ …» και επικολλήστε το εδώ. Γίνεται μία αυτοψία ανά ραντεβού με πελάτη, τηλέφωνο, διεύθυνση, περιοχή, ημερομηνία, ώρα και WO. Όσα υπάρχουν ήδη (ίδιο WO) παραλείπονται.</p>'
+   +'<textarea id="apptTxt" style="min-height:160px" placeholder="ΡΑΝΤΕΒΟΥ ΤΕΤΑΡΤΗ 25/11/2026 …">'+esc(apptDraft)+'</textarea>'
+   +'<div class="row"><button class="btn primary" id="apptGo">Δημιουργία αυτοψιών</button><button class="btn" id="apptPaste">Επικόλληση</button><button class="btn" id="apptCancel">Άκυρο</button></div></div>'}
 
 /* ------------------------------------------------------------------ Dynamics xlsx: read answers / write back */
 function xmlText(s){return s.replace(/<rPh[\s\S]*?<\/rPh>/g,'').replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&')}
@@ -557,8 +600,9 @@ async function exportXlsx(){
 }
 /* one ZIP per inspection: a folder named after the client with the Excel, the cost sheet and the photos */
 /* area: its own field; older inspections fall back to the part of the address after the last comma */
-const areaOf=i=>{const a=String(i.area||'').trim();if(a)return a;const p=String(i.address||'').split(',');return p.length>1?p[p.length-1].trim():''};
-const folderName=()=>{const a=safeName(areaOf(cur)).slice(0,30);return (safeName(cur.client).slice(0,50)||'Αυτοψία')+(a?'_'+a:'')+'_'+(cur.date||today())};
+const areaOf=i=>{const a=String(i.area||'').trim();if(a)return a;const p=String(i.address||'').split(',');return p.length>1?p[p.length-1].replace(/\d{3}\s?\d{2}/,'').trim():''};
+const dotDate=d=>{const p=String(d||today()).split('-');return p.length===3?p[2]+'.'+p[1]+'.'+p[0]:String(d)};
+const folderName=()=>{const a=safeName(areaOf(cur)).slice(0,30);return (safeName(cur.client).slice(0,50)||'Αυτοψία')+(a?'_'+a:'')+'_'+dotDate(cur.date)};
 async function buildFolderZip(){
   if(!window.JSZip)throw new Error('Η βιβλιοθήκη ZIP δεν φορτώθηκε.');
   const base=folderName();const z=new JSZip();const dir=z.folder(base);
@@ -646,7 +690,7 @@ async function importFile(file){
     dirty=true;await saveNow();openEdit();toast('Φορτώθηκαν οι απαντήσεις από το αρχείο.');
   }catch(e){toast(e.message||'Το αρχείο δεν διαβάστηκε.')}
 }
-function openEdit(){view='edit';section=0;confirmDel=false;render();window.scrollTo(0,0);loadPhotos()}
+function openEdit(){view='edit';section=0;backSec=null;confirmDel=false;render();window.scrollTo(0,0);loadPhotos()}
 async function openInsp(id){const x=list.find(i=>i.id===id);if(!x)return;cur=JSON.parse(JSON.stringify(x));cur.rads=Array.from({length:RAD_N},(_,i)=>(cur.rads||[])[i]||'');cur.radQty=Array.from({length:RAD_N},(_,i)=>(cur.radQty||[])[i]||'');if(!cur.cond)cur.cond={tin:75,tout:60,troom:20};if(!cur.prices||!cur.prices.length)cur.prices=JSON.parse(JSON.stringify(PRICES));if(!cur.cost)cur.cost={};curFile=null;openEdit()}
 async function backToList(){await saveNow();closeSheet();closeMeasure();readyFile=null;view='list';cur=null;photos=[];setSave('');render();window.scrollTo(0,0)}
 async function removeCur(){const c=cur;await saveNow();try{await delDoc(c.id);if(c.fileId)await delDoc(c.fileId)}catch(e){toast('Η διαγραφή απέτυχε.');return}
@@ -663,7 +707,7 @@ function render(){
 }
 function listHtml(){
   const b=banner?'<div class="banner">'+esc(banner)+'</div>':'';
-  const actions='<div class="actions"><button class="btn primary wide" id="newBtn">+ Νέα αυτοψία</button><label class="btn filebtn">Αρχείο Dynamics<input type="file" id="fileIn" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label><button class="btn" id="pricesBtn">Τιμοκατάλογος</button></div>';
+  const actions='<div class="actions"><button class="btn primary wide" id="newBtn">+ Νέα αυτοψία</button><label class="btn filebtn">Αρχείο Dynamics<input type="file" id="fileIn" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label><button class="btn" id="pricesBtn">Τιμοκατάλογος</button><button class="btn" id="importBtn" style="grid-column:1/-1">📋 Εισαγωγή ραντεβού από Viber</button></div>'+importHtml();
   const help='<details class="card"><summary><b>Αρχείο Dynamics και αποστολή</b></summary><p class="hint">Με το αρχείο Dynamics της αυτοψίας, η αποστολή δίνει το ίδιο αρχείο συμπληρωμένο, έτοιμο για εισαγωγή. Χωρίς αρχείο, δίνει απλό Excel με ερωτήσεις και απαντήσεις. Ο «Φάκελος ZIP» βάζει Excel και φωτογραφίες σε ένα αρχείο με το όνομα του πελάτη.</p></details>';
   const backup='<details class="card"><summary><b>Αντίγραφο ασφαλείας</b></summary><div class="stack" style="margin-top:10px"><p class="hint">Οι αυτοψίες αποθηκεύονται μόνο σε αυτό το κινητό. Κρατάτε τακτικά αντίγραφο στα Αρχεία ή στο OneDrive· αν διαγραφεί η εφαρμογή ή αλλάξετε κινητό, επαναφέρονται από εκεί. Το αντίγραφο δεν περιέχει τις φωτογραφίες· αυτές φεύγουν με τον «Φάκελο ZIP» κάθε αυτοψίας.</p><div class="row"><button class="btn" id="backupBtn">Αντίγραφο όλων</button><label class="btn filebtn">Επαναφορά<input type="file" id="restoreIn" accept=".json,application/json"></label></div></div></details>';
   if(!store)return '<div class="stack">'+actions+'<p class="hint">Φόρτωση…</p></div>';
@@ -672,7 +716,7 @@ function listHtml(){
   const cards=list.map(i=>{const [n,t]=progress(i);const pc=Math.round(100*n/Math.max(t,1));const key=((i.client||'')+' '+(i.address||'')+' '+(i.area||'')).toLowerCase();
     const tags=(i.fileId?'<span class="tag">DYNAMICS</span>':'')+(i.photoN?'<span class="tag plain">'+i.photoN+' φωτ.</span>':'');
     return '<button class="insp" data-open="'+esc(i.id)+'" data-key="'+esc(key)+'"'+(matches(key)?'':' hidden')+'><div class="head"><b>'+esc(i.client||'Χωρίς όνομα')+'</b><span class="pct'+(pc===100?' full':'')+'">'+(pc===100?'✓ Πλήρης':pc+'%')+'</span></div>'
-    +'<div class="meta"><span>'+esc(i.address||'—')+'</span>'+(i.area?'<span>'+esc(i.area)+'</span>':'')+'<span>'+esc(fmtDate(i.date))+'</span></div>'+(tags?'<div class="tags">'+tags+'</div>':'')+'<div class="bar"><i style="width:'+pc+'%"></i></div></button>'}).join('');
+    +'<div class="meta"><span>'+esc(i.address||'—')+'</span>'+(i.area?'<span>'+esc(i.area)+'</span>':'')+'<span>'+esc(fmtDate(i.date))+(i.time?' '+esc(i.time):'')+'</span>'+(i.wo?'<span>'+esc(i.wo)+'</span>':'')+'</div>'+(tags?'<div class="tags">'+tags+'</div>':'')+'<div class="bar"><i style="width:'+pc+'%"></i></div></button>'}).join('');
   return '<div class="stack">'+b+actions+search+'<p class="sum"><span id="listCount">'+countText()+'</span></p>'+cards+help+backup+'</div>';
 }
 const matches=key=>!listFilter||key.includes(listFilter.toLowerCase().trim());
@@ -683,6 +727,8 @@ function editHtml(){
   const head=section===0?'<div class="card stack"><label class="f" for="cl">Πελάτης<input id="cl" data-meta="client" value="'+esc(cur.client)+'" placeholder="Ονοματεπώνυμο πελάτη" autocomplete="off"></label>'
    +'<label class="f" for="ad">Διεύθυνση<input id="ad" data-meta="address" value="'+esc(cur.address)+'" placeholder="Οδός, αριθμός" autocomplete="off"></label>'
    +'<label class="f" for="ar">Περιοχή<input id="ar" data-meta="area" value="'+esc(cur.area||'')+'" placeholder="'+esc(areaOf({address:cur.address})||'π.χ. Ελευσίνα')+'" autocomplete="off"></label>'
+   +'<div class="row" style="align-items:flex-end"><label class="f" for="ph" style="flex:1">Τηλέφωνο<input id="ph" type="tel" data-meta="phone" value="'+esc(cur.phone||'')+'" autocomplete="off"></label>'+(cur.phone?'<a class="btn" style="text-decoration:none" href="tel:'+esc(String(cur.phone).replace(/[^\d+]/g,''))+'" aria-label="Κλήση">📞</a>':'')+'</div>'
+   +((cur.wo||cur.time)?'<p class="hint">'+[cur.time?'Ραντεβού '+cur.time:'',cur.wo?cur.wo+(cur.account?' ('+cur.account+')':''):''].filter(Boolean).map(esc).join(' · ')+'</p>':'')
    +'<label class="f" for="dt">Ημερομηνία αυτοψίας<input id="dt" type="date" data-meta="date" value="'+esc(cur.date)+'"></label>'
    +(cur.fileName?'<p class="hint">Αρχείο Dynamics: '+esc(cur.fileName)+'</p>':'')+'</div>'
    :'<p class="sum"><span>'+esc(cur.address||'Χωρίς διεύθυνση')+'</span>'+(cur.area?'<span>'+esc(cur.area)+'</span>':'')+'<span>'+esc(fmtDate(cur.date))+'</span></p>';
@@ -745,7 +791,7 @@ function pricesHtml(){
    +'<label class="f">ΦΠΑ %<input id="vatIn" value="'+VAT+'" inputmode="decimal" style="max-width:120px"></label></div>'
    +PRICES.map((it,k)=>'<div class="card pr"><textarea data-pt="'+k+'" rows="3" aria-label="Περιγραφή">'+esc(it.t)+'</textarea><div class="row"><label class="f">Μονάδα<input data-pu="'+k+'" value="'+esc(it.u)+'"></label><label class="f">Τιμή €<input data-pp="'+k+'" value="'+esc(String(it.p).replace('.',','))+'" inputmode="decimal"></label>'+(PRICE_DEFAULT.some(d=>d.id===it.id)?'':'<button class="btn danger" data-pdel="'+k+'">Αφαίρεση</button>')+'</div></div>').join('')
    +'<div class="row"><button class="btn" id="priceAdd">+ Νέα εργασία</button><button class="btn danger" id="priceReset">Επαναφορά τιμών Novair</button></div></div>'}
-function updateBottom(){let n=0,t=0;Q.filter(visible).forEach(q=>{t++;if(answered(q))n++});const g=costTotal(cur).gross;$('#bottomInfo').textContent=n+' από '+t+' απαντήσεις'+(g>0?' · '+eur(g):'')+(photos.length?' · '+photos.length+' φωτ.':'');$('#bottomProg').style.width=Math.round(100*n/Math.max(t,1))+'%'}
+function updateBottom(){let n=0,t=0;Q.filter(visible).forEach(q=>{t++;if(answered(q))n++});const g=costTotal(cur).gross;$('#bottomInfo').textContent=n+' από '+t+' απαντήσεις'+(g>0?' · '+eur(g):'')+(photos.length?' · '+photos.length+' φωτ.':'');$('#bottomProg').style.width=Math.round(100*n/Math.max(t,1))+'%';const pc=$('#photoCnt');if(pc)pc.textContent=photos.length}
 function refreshCard(seq){const q=QBY[seq];const el=document.getElementById('card'+seq);if(el)el.classList.toggle('done',answered(q));
   const k=SECTIONS.findIndex(s=>seq>=s[1]&&seq<=s[2]);const tab=document.querySelector('.tab[data-sec="'+k+'"] small');if(tab){const [n,t]=secCount(k);const full=t>0&&n===t;tab.textContent=full?'✓':n+'/'+t;tab.parentElement.classList.toggle('full',full)}const ct=document.getElementById('tabc'+COST_SEC);if(ct)ct.textContent=eur(costTotal(cur).gross);updateBottom()}
 const dependents=seq=>Q.some(q=>q.when&&q.when.q===seq);
@@ -782,7 +828,13 @@ document.addEventListener('click',e=>{
   if(t.id==='delNo'){confirmDel=false;return rerenderKeepScroll()}
   if(t.id==='delYes')return removeCur();
   if(t.dataset.open)return openInsp(t.dataset.open);
-  if(t.dataset.sec!==undefined){section=+t.dataset.sec;confirmDel=false;render();window.scrollTo(0,0);const at=document.querySelector('.tab[aria-selected="true"]');if(at&&at.scrollIntoView)at.scrollIntoView({block:'nearest',inline:'center'});return}
+  if(t.id==='photoGo'){if(section!==PHOTO_SEC){backSec=section;section=PHOTO_SEC;confirmDel=false;render();window.scrollTo(0,0)}return}
+  if(t.id==='photoBack'){section=backSec;backSec=null;render();window.scrollTo(0,0);return}
+  if(t.id==='importBtn'){importOpen=!importOpen;render();const ta=$('#apptTxt');if(ta)ta.focus();return}
+  if(t.id==='apptCancel'){importOpen=false;apptDraft='';return render()}
+  if(t.id==='apptGo'){const ta=$('#apptTxt');apptDraft=ta?ta.value:apptDraft;return importAppts(apptDraft)}
+  if(t.id==='apptPaste'){(async()=>{try{const x=await navigator.clipboard.readText();if(x){apptDraft=x;const ta=$('#apptTxt');if(ta)ta.value=x}}catch(_){toast('Πατήστε παρατεταμένα μέσα στο πλαίσιο και «Επικόλληση».')}})();return}
+  if(t.dataset.sec!==undefined){section=+t.dataset.sec;backSec=null;confirmDel=false;render();window.scrollTo(0,0);const at=document.querySelector('.tab[aria-selected="true"]');if(at&&at.scrollIntoView)at.scrollIntoView({block:'nearest',inline:'center'});return}
   if(t.dataset.yn){const s=+t.dataset.yn;const v=cur.answers[s]===t.dataset.v?'':t.dataset.v;setAns(s,v);
     if(dependents(s))return rerenderKeepScroll();t.parentElement.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));refreshCard(s);return costChanged()}
   if(t.dataset.chip){const s=+t.dataset.chip;const v=cur.answers[s]===t.dataset.v?'':t.dataset.v;setAns(s,v);
@@ -791,6 +843,7 @@ document.addEventListener('click',e=>{
 function radChanged(){(cur.rads||[]).forEach((r,i)=>{const el=document.getElementById('rw'+i);if(el){const w=r?radW(cur,i):null;el.textContent=r?(w!=null?w.toLocaleString('el-GR'):'—'):''}});
   const t=document.getElementById('radTot');if(t)t.textContent=radTotal(cur).toLocaleString('el-GR')+' W';saveSoon();refreshCard(RAD_SEQ)}
 document.addEventListener('input',e=>{const t=e.target;if(t.id==='searchIn'){listFilter=t.value;return applyFilter()}
+  if(t.id==='apptTxt'){apptDraft=t.value;return}
   if(t.id==='measH')return measResult();
   if(!cur&&view!=='prices')return;
   if(view==='prices'){
@@ -813,7 +866,7 @@ document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='fileIn'&&t.files&&t.files[0]){importFile(t.files[0]);t.value=''}
   else if(t.id==='restoreIn'&&t.files&&t.files[0]){restoreAll(t.files[0]);t.value=''}
   else if(t.dataset&&t.dataset.measin!==undefined&&t.files&&t.files[0]){const f=t.files[0];const i=+t.dataset.measin;t.value='';openMeasure(i,f)}
-  else if((t.id==='photoCam'||t.id==='photoLib')&&t.files&&t.files.length){const fs=Array.from(t.files);t.value='';addPhotos(fs)}
+  else if((t.id==='photoCam'||t.id==='photoLib'||t.id==='photoQuick')&&t.files&&t.files.length){const fs=Array.from(t.files);t.value='';addPhotos(fs)}
   else if(t.dataset&&t.dataset.con!==undefined){const id=t.dataset.con;const l=costLines(cur).find(x=>x.id===id);const o={...(cur.cost[id]||{}),on:t.checked};if(t.checked&&!l.qtxt&&!l.isAuto)o.qty='1';cur.cost[id]=o;saveSoon();rerenderKeepScroll()}
   else if(t.id==='vatCk'){cur.vat=t.checked;saveSoon();rerenderKeepScroll()}
   else if(t.dataset&&t.dataset.rad!==undefined)t.dispatchEvent(new Event('input',{bubbles:true}));
