@@ -374,7 +374,7 @@ async function loadPrices(){try{const d=await getDoc('prices');if(d&&Array.isArr
 async function savePrices(){try{await putDoc('prices',{kind:'prices',items:PRICES,vat:VAT,updatedAt:new Date().toISOString()});setSave('Αποθηκεύτηκε')}catch(e){toast('Ο τιμοκατάλογος δεν αποθηκεύτηκε.')}}
 
 /* ------------------------------------------------------------------ state */
-const APP_VER='25.11 · 11:20';
+const APP_VER='25.11 · 11:35';
 let listDel=null, backSec=null, importOpen=false, apptDraft='';
 let store=null, uid=null, list=[], cur=null, curFile=null, view='list', section=0, saving=Promise.resolve(), dirty=false, timer=null, confirmDel=false, banner='', photos=[], listFilter='', readyFile=null;
 const $=s=>document.querySelector(s);
@@ -384,7 +384,7 @@ const visible=q=>{const w=q.when;if(!w)return true;const a=cur.answers[w.q]||'';
 const answered=q=>q.type===RAD?(cur.rads||[]).some(Boolean):String(cur.answers[q.seq]??'').trim()!=='';
 function progress(insp){const c=cur;cur=insp;const vs=Q.filter(visible);const n=vs.filter(answered).length;cur=c;return [n,vs.length]}
 const today=()=>new Date().toISOString().slice(0,10);
-const fmtDate=d=>d?d.split('-').reverse().join('/'):'';
+const fmtDate=d=>d?d.split('-').reverse().join('.'):'';
 
 /* ------------------------------------------------------------------ storage: db (private per person) or this device */
 const LS='autopsia_v1';
